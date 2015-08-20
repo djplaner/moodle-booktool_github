@@ -25,7 +25,9 @@
 require(dirname(__FILE__).'/../../../../config.php');
 require_once(dirname(__FILE__).'/locallib.php');
 require_once($CFG->dirroot.'/mod/book/locallib.php');
-require_once($CFG->libdir.'/filelib.php');
+#require_once($CFG->libdir.'/filelib.php');
+
+require_once( __DIR__ . '/local/client/client/GitHubClient.php' );
 
 $id = required_param('id', PARAM_INT);           // Course Module ID
 
@@ -39,9 +41,39 @@ require_login($course, false, $cm);
 
 $context = context_module::instance($cm->id);
 require_capability('mod/book:read', $context);
-require_capability('booktool/exportimscp:export', $context);
+require_capability('mod/book:edit', $context);
+require_capability('mod/book:viewhiddenchapters', $context);
+
+#***** What about the capability to view hidden chapters???
+
+#require_capability('booktool/exportimscp:export', $context);
 
 #-- functionality from exportismcp - to be replaced
+#************** Need to think about what events get added
 #\booktool_exportimscp\event\book_exported::create_from_book($book, $context)->trigger();
-#$file = booktool_exportimscp_build_package($book, $context);
-#send_stored_file($file, 10, 0, true, array('filename' => clean_filename($book->name).'.zip'));
+
+#--- Dummy data to be replaced
+
+#$repo = 'edc3100';
+#$path = 'A_2nd_new_file.html';
+#$username = 'djplaner';
+#$password = 'n3tmask3r';
+
+#--- show the header and initial display 
+echo $OUTPUT->header();
+#************* SHOULD DO MORE SET UP HERE???
+
+echo "<h1> Hello </h1>";
+
+#-- create the client 
+
+$commits = booktool_github_get_commits();
+
+echo "<xmp>";
+print_r ($commits);
+echo "</xmp>";
+
+
+
+echo $OUTPUT->footer();
+

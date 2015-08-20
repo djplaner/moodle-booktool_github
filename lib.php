@@ -24,6 +24,10 @@
 
 defined('MOODLE_INTERNAL') || die;
 
+$owner = 'djplaner';
+$repo = 'edc3100';
+$path = 'A_2nd_new_file.html';
+
 /**
  * Adds module specific settings to the settings block
  *
@@ -39,3 +43,30 @@ function booktool_github_extend_settings_navigation(settings_navigation $setting
         $node->add(get_string('github', 'booktool_github'), $url, navigation_node::TYPE_SETTING, null, null, $icon);
     }
 }
+
+/***************************************************
+ * github client specific calls
+
+/**
+ * $commits = getCommits( );
+ * - return an array of GitHubCommit objects
+ */
+
+function booktool_github_get_commits() {
+    global $owner, $repo, $path;
+
+    $client = new GitHubClient();
+#    $client->setDebug( true );
+
+    $before = memory_get_usage();
+
+    try{
+        $commits = $client->repos->commits->listCommitsOnRepository(
+                                $owner, $repo, null, $path );
+    } catch ( Exception $e ) {
+        echo '<xmp>Caught exception ' , $e->getMessage(), "</xmp>";
+    }
+
+    return $commits;
+}
+
