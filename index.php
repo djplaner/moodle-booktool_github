@@ -27,7 +27,6 @@ require_once(dirname(__FILE__).'/locallib.php');
 require_once($CFG->dirroot.'/mod/book/locallib.php');
 #require_once($CFG->libdir.'/filelib.php');
 
-require_once( __DIR__ . '/local/client/client/GitHubClient.php' );
 
 $id = required_param('id', PARAM_INT);           // Course Module ID
 
@@ -60,20 +59,25 @@ require_capability('mod/book:viewhiddenchapters', $context);
 #$password = 'n3tmask3r';
 
 #--- show the header and initial display 
+
 echo $OUTPUT->header();
 #************* SHOULD DO MORE SET UP HERE???
 
-echo "<h1> Hello </h1>";
 
-#-- create the client 
+echo '<h3>GitHub details</h3>';
+
+echo booktool_github_view_repo_details( );
+
+echo '<h3>History</h3>';
 
 $commits = booktool_github_get_commits();
+$string = booktool_github_view_commits( $commits );
 
-echo "<xmp>";
-print_r ($commits);
-echo "</xmp>";
+echo $string;
 
-
+#echo '<xmp>';
+#print_r( $commits );
+#echo '</xmp>';
 
 echo $OUTPUT->footer();
 

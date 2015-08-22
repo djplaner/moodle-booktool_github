@@ -26,5 +26,9 @@ defined('MOODLE_INTERNAL') || die;
 
 $string['pluginname'] = 'Book github link';
 $string['github'] = 'GitHub';
+
+# booktool_github_view_comments
+$string['commit_details'] = 'commit details';
+
 #$string['eventbookexported'] = 'Book exported';
 #$string['exportimscp:export'] = 'Export book as IMS content package';
