@@ -29,6 +29,8 @@ require_once($CFG->dirroot.'/mod/book/locallib.php');
 
 require_once( __DIR__ . '/local/client/client/GitHubClient.php' );
 
+const GITHUB_TOKEN_NAME = "github_token";
+
 /*****
  * Temporary globals - to be replaced eventually
  */
@@ -45,22 +47,41 @@ $path = 'A_2nd_new_file.html';
  * - return an array of GitHubCommit objects
  */
 
-function booktool_github_get_commits() {
+function booktool_github_get_commits( $id) {
     global $owner, $repo, $path;
 
-    $client = new GitHubClient();
+    $attempts = 0;
+    GET_TOKEN: 
+    $oauth_token = booktool_github_get_oauth_token( $id);
+    $attempts++;
+
+    if ( $oauth_token  ) {
+        $client = new GitHubClient();
+        $client->setAuthType( 'Oauth' );
+        $client->setOauthToken( $oauth_token );
 #    $client->setDebug( true );
 
-    $before = memory_get_usage();
+        $before = memory_get_usage();
 
-    try{
-        $commits = $client->repos->commits->listCommitsOnRepository(
+        try{
+            $commits = $client->repos->commits->listCommitsOnRepository(
                                 $owner, $repo, null, $path );
-    } catch ( Exception $e ) {
-        echo '<xmp>Caught exception ' , $e->getMessage(), "</xmp>";
-    }
+        } catch ( Exception $e ) {
+            $msg = $e->getMessage();
+            echo '<xmp>Caught exception ' . $msg .  "</xmp>";
+            preg_match( '/.*actual status \[([^ ]*)\].*/', $msg, $matches );
 
-    return $commits;
+            if ( $attempts > 2 ) {
+                print "<h1> looks like I'm in a loop ";
+            } elseif ( $matches[1] == 401 ) {
+                // SHOULD DELETE token from session
+                unset( $_SESSION['github_token'] );
+                goto GET_TOKEN; 
+            }
+        }
+        return $commits;
+    }
+    return false; // ????? is this what should be returned?
 }
 
 
@@ -80,6 +101,8 @@ function booktool_github_get_commits() {
 function booktool_github_view_repo_details(){
     global $owner, $repo, $path;
 
+    $string = '';
+
     $table = new html_table();
     $table->head = array( '', '' );
     
@@ -93,6 +116,26 @@ function booktool_github_view_repo_details(){
 }
 
 
+/*****************************************************************
+ * Support utils
+ ****************************************************************/
+
+// encode/decode params
+// - used to pass multiple paths via oauth as the STATE variable
+// - enables github_oauth.php to know the id for the book and the
+//   the URL to return to
+
+// accept a hash array and convert it to url encoded string
+function booktool_github_url_encode_params( $params ) {
+    $json = json_encode( $params );
+    return strtr(base64_encode($json), '+/=', '-_,');
+}
+
+// accept a url encoded string and return a hash array
+function booktool_github_url_decode_params($state) {
+    $json = base64_decode(strtr($state, '-_,', '+/='));
+    return json_decode( $json );
+}
 
 
 
@@ -113,6 +156,8 @@ function booktool_github_view_repo_details(){
  */
 
 function booktool_github_view_commits( $commits ) {
+
+    $string = '';
 
     $table = new html_table();
     $table->head = array( 'Date changed', 'Details', 'Committer' );
@@ -150,9 +195,9 @@ function booktool_github_view_commits( $commits ) {
 
         $committer = html_writer::start_div( "committer" );
         $image = html_writer::empty_tag( 'img', array(
-                        src => $avatar_url,
-                        alt => 'Avatar for ' . $user_name,
-                        height => 20, width=> 20 ) );
+                        'src' => $avatar_url,
+                        'alt' => 'Avatar for ' . $user_name,
+                        'height' => 20, 'width'=> 20 ) );
         $committer .= html_writer::link( $user_url, 
                                             $author_name . '&nbsp;&nbsp;' .
                                             $image . '<br /> (' . 
@@ -172,4 +217,26 @@ function booktool_github_view_commits( $commits ) {
     return $string;
 
 }
+
+/**
+ * $token = booktool_github_get_oauth_token( $URL )
+ * - return the oauth access token from github
+ * - if there isn't one, get one and then redirect back to $URL
+ * - if one can't be gotten, show why
+ */
+
+function booktool_github_get_oauth_token( $id, $URL='/mod/book/tool/github/index.php' ) {
+
+    if ( array_key_exists( "github_token", $_SESSION ) ) {
+        return $_SESSION{"github_token"};
+    } else {
+
+        // redirect to get_oauth.php include passsing CURRENT_URL
+        $url = new moodle_url( '/mod/book/tool/github/get_oauth.php',
+                                array( 'id' => $id, 'url' => $URL ));
+        redirect( $url );
+        return false;
+    } 
+}
+
 

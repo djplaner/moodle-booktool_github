@@ -27,14 +27,14 @@ require_once(dirname(__FILE__).'/locallib.php');
 require_once($CFG->dirroot.'/mod/book/locallib.php');
 #require_once($CFG->libdir.'/filelib.php');
 
-
+// *** can this be put into a support function?
 $id = required_param('id', PARAM_INT);           // Course Module ID
 
 $cm = get_coursemodule_from_id('book', $id, 0, false, MUST_EXIST);
 $course = $DB->get_record('course', array('id'=>$cm->course), '*', MUST_EXIST);
-$book = $DB->get_record('book', array('id'=>$cm->instance), '*', MUST_EXIST);
+$book = $DB->get_record('book', array('id'=>$cm->instance), '*', MUST_EXIST); 
 
-$PAGE->set_url('/mod/book/tool/github/index.php', array('id'=>$id));
+$PAGE->set_url('/mod/book/tool/github/index.php');
 
 require_login($course, false, $cm);
 
@@ -44,33 +44,25 @@ require_capability('mod/book:edit', $context);
 require_capability('mod/book:viewhiddenchapters', $context);
 
 #***** What about the capability to view hidden chapters???
-
+#** Include a specific github capability
 #require_capability('booktool/exportimscp:export', $context);
 
-#-- functionality from exportismcp - to be replaced
 #************** Need to think about what events get added
 #\booktool_exportimscp\event\book_exported::create_from_book($book, $context)->trigger();
 
-#--- Dummy data to be replaced
-
-#$repo = 'edc3100';
-#$path = 'A_2nd_new_file.html';
-#$username = 'djplaner';
-#$password = 'n3tmask3r';
-
 #--- show the header and initial display 
 
-echo $OUTPUT->header();
 #************* SHOULD DO MORE SET UP HERE???
 
+$commits = booktool_github_get_commits( $id);
 
-echo '<h3>GitHub details</h3>';
+echo $OUTPUT->header();
+echo '<h3>GitHub details id is ' . $id .' </h3>';
 
 echo booktool_github_view_repo_details( );
 
 echo '<h3>History</h3>';
 
-$commits = booktool_github_get_commits();
 $string = booktool_github_view_commits( $commits );
 
 echo $string;
