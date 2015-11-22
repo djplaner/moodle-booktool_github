@@ -31,8 +31,8 @@ require_once(__DIR__ . '/local/PHP-OAuth2/GrantType/IGrantType.php');
 require_once(__DIR__ . '/local/PHP-OAuth2/GrantType/AuthorizationCode.php');
 
 // **** NEED TO PUT THESE IN A DATABASE TABLE
-const CLIENT_ID     = 'b8340758e05e8280f5ef';
-const CLIENT_SECRET = '805f9a89dd7c19171fd4d86ae1bd8eec6ebef19a';
+//const CLIENT_ID     = 'b8340758e05e8280f5ef';
+//const CLIENT_SECRET = '805f9a89dd7c19171fd4d86ae1bd8eec6ebef19a';
 const REDIRECT_URI  = 'http://localhost:8080/moodle/mod/Book/tool/github/get_oauth.php';
 
 // Hard-coded into the tool
@@ -83,7 +83,10 @@ require_capability('mod/book:viewhiddenchapters', $context);
 // Need to replace with proper use
 //session_start();
 
-$client = new OAuth2\Client(CLIENT_ID, CLIENT_SECRET);
+$client_details = booktool_github_get_client_details();
+
+$client = new OAuth2\Client($client_details['clientid'], 
+                            $client_details['clientsecret'] );
 
 //if (!isset($_GET['code'])) {
 

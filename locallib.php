@@ -25,8 +25,7 @@
 defined('MOODLE_INTERNAL') || die;
 
 require_once(dirname(__FILE__).'/lib.php');
-require_once($CFG->dirroot.'/mod/book/locallib.php');
-
+require_once(__DIR__ . '/../../locallib.php');
 require_once( __DIR__ . '/local/client/client/GitHubClient.php' );
 
 const GITHUB_TOKEN_NAME = "github_token";
@@ -34,21 +33,23 @@ const GITHUB_TOKEN_NAME = "github_token";
 /*****
  * Temporary globals - to be replaced eventually
  */
-$owner = 'djplaner';
-$repo = 'edc3100';
-$path = 'A_2nd_new_file.html';
+//$owner = 'djplaner';
+//$repo = 'edc3100';
+//$path = 'A_2nd_new_file.html';
 
 
 /***************************************************
  * github client specific calls
-
-/**
- * $commits = getCommits( );
- * - return an array of GitHubCommit objects
  */
 
-function booktool_github_get_commits( $id) {
-    global $owner, $repo, $path;
+/**
+  * ( $github_client, $github_user ) = booktool_github_get_client( $id )
+  * - get OAuth connection with github
+  * - create a github client object to communicate with github
+  * - get details of github user
+  */
+
+function booktool_github_get_client( $id ) {
 
     $attempts = 0;
     GET_TOKEN: 
@@ -59,29 +60,79 @@ function booktool_github_get_commits( $id) {
         $client = new GitHubClient();
         $client->setAuthType( 'Oauth' );
         $client->setOauthToken( $oauth_token );
-#    $client->setDebug( true );
 
-        $before = memory_get_usage();
-
+        // replace this with get user details
         try{
-            $commits = $client->repos->commits->listCommitsOnRepository(
-                                $owner, $repo, null, $path );
+            $user = $client->users->getTheAuthenticatedUser();
         } catch ( Exception $e ) {
+            // oops problem, probably a 401, try and fix
             $msg = $e->getMessage();
-            echo '<xmp>Caught exception ' . $msg .  "</xmp>";
             preg_match( '/.*actual status \[([^ ]*)\].*/', $msg, $matches );
 
             if ( $attempts > 2 ) {
                 print "<h1> looks like I'm in a loop ";
+                //** need to handle this, is this a failure?
+                return Array( false, false );
             } elseif ( $matches[1] == 401 ) {
                 // SHOULD DELETE token from session
                 unset( $_SESSION['github_token'] );
                 goto GET_TOKEN; 
             }
         }
-        return $commits;
+        return Array( $client, $user );
     }
-    return false; // ????? is this what should be returned?
+}
+
+
+/** 
+  * ( owner, repo, path ) = get_repo_details( $book_id, $github_user );
+  * - return an array of basic information about the connection
+  *   that is required by the github_client
+  *   - owner is name of github user working with the repo
+  *   - repo is the name of the github repo
+  *   - path is the full path for the file from the report connected with book
+  * - return false if can't get the information
+  **/
+
+function booktool_github_get_repo_details( $book_id, $github_user ) {
+    global $DB;
+
+    // repo and path are contained in database table github_connections
+    $result = $DB->get_record( 'booktool_github_connections', 
+                                Array( 'bookid'=> $book_id) );
+
+    // if no data, then just return false
+    if ( ! $result ) {
+        return false;
+    }
+
+    // need to check we have a valid github username and that we can
+    // can actually access this repo 
+    $username = $github_user->getLogin();
+
+    return Array( 'owner' => $username, 
+                  'repo' => $result->repository,
+                  'path' => $result->path );
+}
+
+
+/**
+ * $commits = getCommits( );
+ * - return an array of GitHubCommit objects
+ */
+
+function booktool_github_get_commits( $id, $github_client, $repo_details) {
+
+   try{
+       $commits = $github_client->repos->commits->listCommitsOnRepository(
+                            $repo_details['owner'], $repo_details['repo'], null, 
+                            $repo_details['path'] );
+    } catch ( Exception $e ) {
+        $msg = $e->getMessage();
+        echo '<xmp>Caught exception ' . $msg .  "</xmp>";
+        return false;
+    }
+    return $commits;
 }
 
 
@@ -98,43 +149,48 @@ function booktool_github_get_commits( $id) {
  * - Not really querying data from github
  */
 
-function booktool_github_view_repo_details(){
-    global $owner, $repo, $path;
+function booktool_github_view_repo_details( $repo_details, $github_user){
+
+    $repo_url = "https://github.com/" . $repo_details['owner'] . "/" .
+                $repo_details['repo'];
+    $path_url = $repo_url . "/blob/master/" . $repo_details['path'];
+    //*** should I remove double / in path_url (but not from http://)
+    $owner_url = "https://github.com/" . $repo_details['owner'];
 
     $string = '';
 
     $table = new html_table();
     $table->head = array( '', '' );
     
-    $table->data[] = array( 'Repository', '<a href="https://github.com/djplaner/edc3100">' . $repo . '</a>' );
-    $table->data[] = array( 'File', '<a href="https://github.com/djplaner/edc3100/blob/master/A_2nd_new_file.html">' . $path . '</a>' );
-    $table->data[] = array( 'User', '<a href="https://github.com/djplaner/">' . $owner . '</a>' );
+    $table->data[] = array( 'Repository', '<a href="' . $repo_url . '">' . 
+                                $repo_details['repo'] . '</a>' );
+    $table->data[] = array( 'File', '<a href="' . $path_url . '">' . 
+                                $repo_details['path'] . '</a>' );
+
+    // show information about current user
+    $avatar_url = $github_user->getAvatarUrl();
+    $name = $github_user->getName();
+    $user_name = $github_user->getLogin();
+    $user_url = $github_user->getHtmlUrl();
+
+    $user_html = html_writer::start_div( "githubuser" );
+    //$image = html_writer::empty_tag( 'img', array(
+    $user_html .= html_writer::link( $user_url, 
+                                     $name . '<br /> (' . $user_name . 
+                                     ') &nbsp;&nbsp;' );
+    $user_html .= html_writer::empty_tag( 'img', array(
+                        'src' => $avatar_url,
+                        'alt' => 'Avatar for ' . $name,
+                        'height' => 20, 'width'=> 20 ) );
+    $user_html .= html_writer::end_div();
+
+    $table->data[] = array( 'User', $user_html );
 
     $string .= html_writer::table( $table ); 
+    //$table->data[] = array( 'User', '<a href="' . $owner_url . '">' . 
+     //                           $repo_details['owner'] . '</a>' );
 
     return $string;
-}
-
-
-/*****************************************************************
- * Support utils
- ****************************************************************/
-
-// encode/decode params
-// - used to pass multiple paths via oauth as the STATE variable
-// - enables github_oauth.php to know the id for the book and the
-//   the URL to return to
-
-// accept a hash array and convert it to url encoded string
-function booktool_github_url_encode_params( $params ) {
-    $json = json_encode( $params );
-    return strtr(base64_encode($json), '+/=', '-_,');
-}
-
-// accept a url encoded string and return a hash array
-function booktool_github_url_decode_params($state) {
-    $json = base64_decode(strtr($state, '-_,', '+/='));
-    return json_decode( $json );
 }
 
 
@@ -237,6 +293,49 @@ function booktool_github_get_oauth_token( $id, $URL='/mod/book/tool/github/index
         redirect( $url );
         return false;
     } 
+}
+
+/*
+ * clientid = booktool_github_get_client_details()
+ * - return the base64 client id from github for this tool
+ * TO DO: replace this with a call to the database or other location
+ */
+
+function booktool_github_get_client_details() {
+    global $DB;
+
+    $result = $DB->get_record( 'booktool_github', Array( 'id'=>1) );
+
+    if ( ! $result ) {
+        return Array( 'clientid' => '',
+                  'clientsecret' => '' );
+    } else {
+        return Array( 'clientid' => $result->clientid,
+                      'clientsecret' => $result->clientsecret );
+    }
+}
+
+
+
+/*****************************************************************
+ * Support utils
+ ****************************************************************/
+
+// encode/decode params
+// - used to pass multiple paths via oauth as the STATE variable
+// - enables github_oauth.php to know the id for the book and the
+//   the URL to return to
+
+// accept a hash array and convert it to url encoded string
+function booktool_github_url_encode_params( $params ) {
+    $json = json_encode( $params );
+    return strtr(base64_encode($json), '+/=', '-_,');
+}
+
+// accept a url encoded string and return a hash array
+function booktool_github_url_decode_params($state) {
+    $json = base64_decode(strtr($state, '-_,', '+/='));
+    return json_decode( $json );
 }
 
 

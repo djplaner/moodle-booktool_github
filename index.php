@@ -25,7 +25,7 @@
 require(dirname(__FILE__).'/../../../../config.php');
 require_once(dirname(__FILE__).'/locallib.php');
 require_once($CFG->dirroot.'/mod/book/locallib.php');
-#require_once($CFG->libdir.'/filelib.php');
+//require_once($CFG->libdir.'/filelib.php');
 
 // *** can this be put into a support function?
 $id = required_param('id', PARAM_INT);           // Course Module ID
@@ -42,6 +42,7 @@ $context = context_module::instance($cm->id);
 require_capability('mod/book:read', $context);
 require_capability('mod/book:edit', $context);
 require_capability('mod/book:viewhiddenchapters', $context);
+require_capability( 'booktool/github:export', $context );
 
 #***** What about the capability to view hidden chapters???
 #** Include a specific github capability
@@ -54,22 +55,45 @@ require_capability('mod/book:viewhiddenchapters', $context);
 
 #************* SHOULD DO MORE SET UP HERE???
 
-$commits = booktool_github_get_commits( $id);
+list( $github_client, $github_user ) = booktool_github_get_client( $id );
 
-echo $OUTPUT->header();
-echo '<h3>GitHub details id is ' . $id .' </h3>';
+if ( ! $github_client ) {
+    // couldn't authenticate with github
+    echo $OUTPUT->header();
 
-echo booktool_github_view_repo_details( );
+    print '<h1> Cannot authenticate with github</h1>';
 
-echo '<h3>History</h3>';
+    echo $OUTPUT->footer();
 
-$string = booktool_github_view_commits( $commits );
+    die;
+} 
 
-echo $string;
+$repo_details = booktool_github_get_repo_details( $id, $github_user );
 
-#echo '<xmp>';
-#print_r( $commits );
-#echo '</xmp>';
+if ( ! $repo_details ) {
+    //*** eventually display the form to set up the repo connection 
+    echo $OUTPUT->header();
 
-echo $OUTPUT->footer();
+    print '<h1> Have not configure repo connection yet</h1>';
 
+    echo $OUTPUT->footer();
+} else {
+    
+    echo $OUTPUT->header();
+
+    $commits = booktool_github_get_commits( $id, $github_client, $repo_details);
+
+    if ( ! $commits ) {
+        print "<h3>Error - no get commits </h3>" ;
+    } else {
+
+        echo booktool_github_view_repo_details( $repo_details, $github_user );
+
+        echo '<h3>History</h3>';
+
+        $string = booktool_github_view_commits( $commits );
+
+        echo $string;
+    }
+    echo $OUTPUT->footer();
+}
