@@ -31,9 +31,15 @@ $string['github'] = 'GitHub';
 $string['commit_details'] = 'commit details';
 
 
+
 # connection form
+$string['form_empty'] = '<h2>Provide GitHub details</h2> <p>To work this tool requires two bits of information to work. These are:</p><ol> <li> GitHub <a href="https://help.github.com/articles/github-glossary/#repository">repository</a> <p>e.g. the name of <a href="https://github.com/djplaner/bim2">this repository</a> is <em>bim2</em></li> <li> Path to file in repository. <p>e.g. the path <a href="https://github.com/djplaner/bim2/blob/master/db/log.php">for this file</a> from the <em>bim2</em> repository is <em>db/log.php</em>.  </li> </ol>';
+$string['form_complete'] = '<h2>Current GitHub details</h2> <p>This book is currently connected to <a href="{$a}">this file</a> on GitHub. Use the form below to change these details.</p>';
+
 $string['repo_form_element'] = 'GitHub repository:';
+$string['repo_form_default'] = 'Enter name of github repository';
 $string['path_form_element'] = 'Path to file in repository:';
+$string['path_form_default'] = 'Enter full path to file';
 
 
 
