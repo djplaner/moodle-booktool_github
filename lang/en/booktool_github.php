@@ -39,8 +39,9 @@ $string['form_complete'] = '<h2>Current GitHub details</h2> <p>This book is curr
 $string['repo_form_element'] = 'GitHub repository:';
 $string['repo_form_default'] = 'Enter name of github repository';
 $string['path_form_element'] = 'Path to file in repository:';
-$string['path_form_default'] = 'Enter full path to file';
+$string['repo_path_default'] = 'Enter full path to file';
 
+$string['form_no_change_default_error'] = '<h3>Error saving changes</h3> <p>No changes made to the default values for repository and path. No changes saved. </p> ';
 
 
 /******************************************************************
