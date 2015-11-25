@@ -100,7 +100,7 @@ if ( $code == '' ) {
 
     // Send user to github oauth login
 
-    $EXTRAS = Array( 'state' => $param_str, 'scope' => "user" );
+    $EXTRAS = Array( 'state' => $param_str, 'scope' => "user,repo" );
     $auth_url = $client->getAuthenticationUrl(AUTHORIZATION_ENDPOINT, 
                                         REDIRECT_URI, $EXTRAS);
     header('Location: ' . $auth_url);
