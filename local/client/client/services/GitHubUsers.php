@@ -62,7 +62,8 @@ class GitHubUsers extends GitHubService
 	{
 		$data = array();
 		
-		return $this->client->request("/user", 'GET', $data, 200, 'GitHubPrivateUser');
+		//return $this->client->request("/user", 'GET', $data, 200, 'GitHubPrivateUser');
+		return $this->client->request("/user", 'GET', $data, 200, 'GitHubFullUser');
 	}
 	
 	/**
