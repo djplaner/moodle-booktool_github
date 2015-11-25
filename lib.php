@@ -24,6 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die;
 
+require_once(__DIR__.'/locallib.php');
+
 /**
  * Adds module specific settings to the settings block
  *
@@ -34,9 +36,15 @@ function booktool_github_extend_settings_navigation(settings_navigation $setting
     global $PAGE;
 
     if (has_capability('booktool/github:export', $PAGE->cm->context)) {
-        $url = new moodle_url('/mod/book/tool/github/index.php', array('id'=>$PAGE->cm->id));
-        $icon = new pix_icon('github', '', 'booktool_github', array('class'=>'icon'));
-        $node->add(get_string('github', 'booktool_github'), $url, navigation_node::TYPE_SETTING, null, null, $icon);
+        $id = $PAGE->cm->id;
+        $url = new moodle_url('/mod/book/tool/github/index.php', 
+                              array('id'=>$id));
+        $icon = new pix_icon('github', '', 'booktool_github', 
+                              array('class'=>'icon'));
+        $string = get_string( 'github', 'booktool_github' );
+
+        $node->add( $string, $url, navigation_node::TYPE_SETTING, null, null, 
+                    $icon);
     }
 }
 

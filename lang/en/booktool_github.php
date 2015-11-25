@@ -35,14 +35,17 @@ $string['commit_details'] = 'commit details';
 # connection form
 $string['form_empty'] = '<h2>Provide GitHub details</h2> <p>To work this tool requires two bits of information to work. These are:</p><ol> <li> GitHub <a href="https://help.github.com/articles/github-glossary/#repository">repository</a> <p>e.g. the name of <a href="https://github.com/djplaner/bim2">this repository</a> is <em>bim2</em></li> <li> Path to file in repository. <p>e.g. the path <a href="https://github.com/djplaner/bim2/blob/master/db/log.php">for this file</a> from the <em>bim2</em> repository is <em>db/log.php</em>.  </li> </ol>';
 $string['form_complete'] = '<h2>Current GitHub details</h2> <p>This book is currently connected to <a href="{$a}">this file</a> on GitHub. Use the form below to change these details.</p>';
+$string['form_connection_broken'] = '<h2>No valid GitHub connection</h2> <p>The information provided in the form below is unable to form a working connection to GitHub.</p>';
 
 $string['repo_form_element'] = 'GitHub repository:';
 $string['repo_form_default'] = 'Enter name of github repository';
 $string['path_form_element'] = 'Path to file in repository:';
 $string['repo_path_default'] = 'Enter full path to file';
 
-$string['form_no_change_default_error'] = '<h3>Error saving changes</h3> <p>No changes made to the default values for repository and path. No changes saved. </p> ';
-
+$string['form_no_change_default_error'] = '<h3>Error saving changes</h3> <p>No changes made to the default values for repository and path. No changes saved. </p> <p>Please modify the repository and path to point to a specific file in a GitHub repository.</p>';
+$string['form_repo_not_exist_error'] = '<h3>No such repository</h3> <p>It appears that the repository {$a->owner}/{$a->repo} does not exist.  It should be located <a href="http://github.com/{$a->owner}/{$a->repo}">here</a>.</p><p>Please</p><ol> <li> Visit the github repository via the Web. </li> <li> Ensure that the owner of the repo matches {$a->owner}</li> <li> Ensure that the repository name matches {$a->repo}</li> <li> Make any changes required in the form below. </li> </ol><p>&nbsp;</p>';
+$string['form_no_create_file'] = '<h3>Unable to find or create path</h3> <p>It appears that the specified path (<a href="http://github.com/{$a->owner}/{$a->repo}/blob/master/{$a->path}">http://github.com/{$a->owner}/{$a->repo}/blob/master/{$a->path}</a> does not exist and cannot be created.</p><p><p>Please</p><ol> <li> Visit the github repository via the Web. </li> <li> Ensure that the owner of the repo matches {$a->owner}</li> <li> Ensure that the repository name matches {$a->repo}</li> <li> Ensure that the path either exists or can be created. <li> Make any changes required in the form below. </li> </ol><p>&nbsp;</p>';
+$string['form_no_database_write'] = '<h3>Unable to update database</h3><p>Unable to save changes to connection details.</p> <p>Please contact your local support to correct this problem.</p> ';
 
 /******************************************************************
  * strings for show functions

@@ -27,24 +27,27 @@
 
 require_once("$CFG->libdir/formslib.php");
  
-class simplehtml_form extends moodleform {
+class connection_form extends moodleform {
     //Add elements to form
     public function definition() {
         global $CFG;
  
         $mform = $this->_form; 
+
+        $mform->addElement( 'hidden', 'id', $this->_customdata['id'] );
+        $mform->setType( 'id', PARAM_INT );
  
-        
         $mform->addElement('text', 'repo', 
                             get_string('repo_form_element', 'booktool_github')); 
         $mform->setType('repo', PARAM_NOTAGS); 
-        $mform->setDefault('repo', 'Please enter name of github repo'); 
+        $mform->setDefault('repo', get_string( 'repo_form_default', 'booktool_github'));
 
         $mform->addElement('text', 'path', 
                             get_string('path_form_element', 'booktool_github')); 
         $mform->setType('path', PARAM_NOTAGS); 
-        $mform->setDefault('path', 'Please full path to file'); 
+        $mform->setDefault('path', get_string( 'repo_path_default', 'booktool_github')); 
 
+        $this->add_action_buttons();
     }
     //Custom validation should be added here
     function validation($data, $files) {
