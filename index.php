@@ -33,6 +33,13 @@ require_once( __DIR__ . '/connection_form.php' );
 $id = required_param('id', PARAM_INT);           // Course Module ID
 $instructions = optional_param( 'instructions', 0, PARAM_INT);
 
+// kludge to fix form submission where bookid and id (connection id) get mixed
+$tmp_bookid = optional_param( 'bookid', -1, PARAM_INT );
+
+if ($tmp_bookid > -1 ) {
+    $id = $tmp_bookid;
+}
+
 $cm = get_coursemodule_from_id('book', $id, 0, false, MUST_EXIST);
 $course = $DB->get_record('course', array('id'=>$cm->course), '*', MUST_EXIST);
 $book = $DB->get_record('book', array('id'=>$cm->instance), '*', MUST_EXIST); 
@@ -99,7 +106,7 @@ $commits = false;
 //*************************************
 // Start showing the form
 
-$form = new connection_form( null, array( 'id' => $id ) );
+$form = new connection_form( null, array( 'bookid' => $id ) );
 
 // assume it's valid
 $validConnection = true;
@@ -126,7 +133,8 @@ if ( $fromForm = $form->get_data() ) {
 
             $repo_details['repo'] = trim( $fromForm->repo );
             $repo_details['path'] = trim( $fromForm->path );
-            $repo_details['bookid'] = trim( $fromForm->id );
+            $repo_details['bookid'] = trim( $fromForm->bookid );
+            $repo_details['id'] = trim( $fromForm->id );
 
             if ( ! booktool_github_repo_exists($github_client, $repo_details) ) {
                 print get_string( 'form_repo_not_exist_error', 'booktool_github',
@@ -187,6 +195,8 @@ if ( $fromForm = $form->get_data() ) {
     }
 
     // *** how does this handle the no change stuff?
+print "<h1>report details is </h1> <xmp>"; var_dump( $repo_details ) ; print "</xmp>";
+    //$form = new connection_form( null, $repo_details );
     $form->set_data( $repo_details );
     $form->display();
 
