@@ -208,8 +208,7 @@ abstract class GitHubClientBase
 		}
         elseif ( $this->authType == self::GITHUB_AUTH_TYPE_OAUTH ) {
             curl_setopt($c, CURLOPT_HTTPHEADER, array(
-                 'Authorization: ' . self::GITHUB_AUTH_TYPE_OAUTH . ' ' 
-                                   . $this->oauthToken,
+                 'Authorization: token '. $this->oauthToken,
             ));
         }
 		 
@@ -259,6 +258,9 @@ abstract class GitHubClientBase
 					'X-HTTP-Method-Override: PUT', 
 					'Content-type: application/x-www-form-urlencoded'
 				);
+                if ( $this->authType == self::GITHUB_AUTH_TYPE_OAUTH ) {
+                    array_push( $headers, 'Authorization: token '. $this->oauthToken );
+                }
 				
 				if(count($data))
 				{
