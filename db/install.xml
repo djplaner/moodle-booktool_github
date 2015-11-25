@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/book/tool/github/db" VERSION="20151122" COMMENT="XMLDB file for Moodle mod/book/tool/github"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../../../lib/xmldb/xmldb.xsd"
+>
+  <TABLES>
+    <TABLE NAME="booktool_github" COMMENT="Default comment for booktool_github, please edit me">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="clientid" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="temp"/>
+        <FIELD NAME="clientsecret" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+    </TABLE>
+    <TABLE NAME="booktool_github_connections" COMMENT="Details about the connection between a book and a github file">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="bookid" TYPE="int" LENGTH="20" NOTNULL="true" SEQUENCE="false" COMMENT="which book are we talking about"/>
+        <FIELD NAME="repository" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Name of the github repository to which the file belongs"/>
+        <FIELD NAME="path" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Full path to the file that the book is connected to"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+      </KEYS>
+    </TABLE>
+  </TABLES>
+</XMLDB>
