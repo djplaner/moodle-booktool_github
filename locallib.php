@@ -30,14 +30,6 @@ require_once( __DIR__ . '/local/client/client/GitHubClient.php' );
 
 const GITHUB_TOKEN_NAME = "github_token";
 
-/*****
- * Temporary globals - to be replaced eventually
- */
-//$owner = 'djplaner';
-//$repo = 'edc3100';
-//$path = 'A_2nd_new_file.html';
-
-
 /***************************************************
  * github client specific calls
  */
@@ -83,18 +75,85 @@ function booktool_github_get_client( $id ) {
     }
 }
 
+/**
+ * does a given repo exist
+ */
+
+function booktool_github_repo_exists( $github_client, $repo_details ) {
+
+    $data = Array();
+    $request = "/repos/" . $repo_details['owner'] . "/" . $repo_details['repo'];
+    try{
+        $response = $github_client->request($request, 'GET', $data, 200, 
+                                            'GitHubFullRepo');
+    } catch ( Exception $e ) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * does a file exist within a repo
+ **/
+
+function booktool_github_path_exists( $github_client, $repo_details ) {
+
+//$github_client->setDebug( true );
+
+    $data = Array();
+    $request = "/repos/" . $repo_details['owner'] . "/" . $repo_details['repo'] .
+               "/contents/" . rawurlencode( $repo_details['path'] );
+//print "<h3> does it exist? request is $request </h3>";
+
+    try{
+        $response = $github_client->request($request, 'GET', $data, 200, 
+                                            'GitHubReadmeContent');
+    } catch ( Exception $e ) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * create an new empty file
+ * - return true if worked
+ */
+
+function booktool_github_create_new_file( $github_client, $repo_details, $content='' ) {
+
+//$github_client->setDebug( true );
+
+    $request = "/repos/" . $repo_details['owner'] . "/" . $repo_details['repo'] .
+               "/contents/" . rawurlencode( $repo_details['path'] );
+    $data = Array();
+    $data['message'] = 'Creating new file - Moodle book github tool';
+    $data['content'] = base64_encode( $content );
+
+    try{
+        $response = $github_client->request($request, 'PUT', $data, 201, 
+                                            'GitHubReadmeContent');
+    } catch ( Exception $e ) {
+        return false;
+    }
+
+    return true;
+}
+
+
+
 
 /** 
-  * ( owner, repo, path ) = get_repo_details( $book_id, $github_user );
+  * ( repo, path ) = get_repo_details( $book_id, $github_user );
   * - return an array of basic information about the connection
   *   that is required by the github_client
-  *   - owner is name of github user working with the repo
   *   - repo is the name of the github repo
   *   - path is the full path for the file from the report connected with book
   * - return false if can't get the information
   **/
 
-function booktool_github_get_repo_details( $book_id, $github_user ) {
+function booktool_github_get_repo_details( $book_id ) {
     global $DB;
 
     // repo and path are contained in database table github_connections
@@ -106,13 +165,40 @@ function booktool_github_get_repo_details( $book_id, $github_user ) {
         return false;
     }
 
-    // need to check we have a valid github username and that we can
-    // can actually access this repo 
-    $username = $github_user->getLogin();
-
-    return Array( 'owner' => $username, 
+    return Array( 'id' => $result->id,
+                  'bookid' => $result->bookid,
                   'repo' => $result->repository,
                   'path' => $result->path );
+}
+
+/**
+  * bool = put_repo_details( $repo_details )
+  * - either insert or update repo details in the database
+  * - dependent on whether repo_details has an id
+  */
+
+function booktool_github_put_repo_details( $repo_details ) {
+    global $DB;
+
+    $record = new StdClass();
+    $record->bookid       = $repo_details['bookid'];
+    $record->repository   = $repo_details['repo'];
+    $record->path         = $repo_details['path'];
+
+print "<h3> repo details is </h3> <xmp>" ;
+var_dump( $repo_details ); print "</xmp>";
+    if ( array_key_exists( 'id', $repo_details ) ) {
+print "<h3>Update existing entry </h3>";
+        // update an existing entry
+        $record->id = $repo_details['id'];
+
+        return $DB->update_record( 'booktool_github_connections', $record );
+
+    } 
+    // insert a new entry
+print "<h3>record is </h3> <xmp>"; var_dump( $record ) ; print "</xmp>";
+
+    return $DB->insert_record( 'booktool_github_connections', $record );
 }
 
 
@@ -135,8 +221,36 @@ function booktool_github_get_commits( $id, $github_client, $repo_details) {
     return $commits;
 }
 
+/**
+ * bool = booktool_github_change_in_form( $repo_details, $form )
+ * - return TRUE/FALSE depending on whether there have been changes
+ *   made in the form
+ **/
 
+function booktool_github_change_in_form( $repo_details, $form ) {
 
+    // is there anything in the database?
+//    if ( array_key_exists( 'repo', $repo_details ) &&
+//         array_key_exists( 'path', $repo_details ) ) {
+print "<h1> the repo exists </h1>";
+        // has the form changed from defaults?
+        $repoDefault = get_string( 'repo_form_default', 'booktool_github');
+        $pathDefault = get_string( 'repo_path_default', 'booktool_github');
+
+        if ( strcmp( $form->repo, $repoDefault ) !== 0 &&
+             strcmp( $form->path, $pathDefault ) !== 0 ) {
+
+print "<h1> path is different </h1>";
+            // has the form data changed from content of the database? 
+            if ( strcmp( $form->repo, $repo_details['repo']) !== 0 &&
+                 strcmp( $form->path, $repo_details['path']) !== 0 ) {
+print "<h1> form data changed </h1>";
+                return true;
+            }
+        }
+ //   }
+    return false;
+}
 
 /***************************************************
  * Views
@@ -195,6 +309,28 @@ function booktool_github_view_repo_details( $repo_details, $github_user){
 
 
 
+/***************************************************
+ * Given book id, github client and repo details
+ * display a range of status and historical information about the
+ * book and its connection to github
+ */
+
+function booktool_github_view_status( $id, $github_client, $repo_details ) {
+
+    // if there are repo details show the commit information
+    if ( array_key_exists( 'repo', $repo_details ) ) {
+        $commits = booktool_github_get_commits( $id, $github_client, $repo_details);
+
+        if ( ! $commits ) {
+            print "<h3>Error - no get commits </h3>" ;
+        } else {
+            echo '<h3>History</h3>';
+            $string = booktool_github_view_commits( $commits );
+            echo $string;
+        }
+    } 
+        
+}
 
 
 
@@ -316,6 +452,36 @@ function booktool_github_get_client_details() {
 }
 
 
+/*****************************************************************
+ * "views" - functions that generate HTML to display
+ ****************************************************************/
+
+/*
+ * Shows basic instructions about the github tool
+ */
+
+function booktool_github_show_instructions( $id ) {
+
+
+    $git_url = new moodle_url( '/mod/book/tool/github/index.php',
+                            array( 'id' => $id , 'instructions'=>1 ) );
+    $book_url = new moodle_url( '/mod/book/view.php', array('id'=>$id ));
+
+    $urls = Array( 'git_url' => $git_url->out(),
+                   'book_url' => $book_url->out() );
+
+    $content = Array( 'instructions_what_header', 'instructions_what_body',
+                      'instructions_why_header', 'instructions_why_body',
+                      'instructions_requirements_header', 
+                      'instructions_requirements_body',
+                      'instructions_whatnext_header', 
+                      'instructions_whatnext_body' );
+
+    foreach ( $content as $display ) {
+        print get_string( $display, 'booktool_github', $urls );
+    }
+
+}
 
 /*****************************************************************
  * Support utils
