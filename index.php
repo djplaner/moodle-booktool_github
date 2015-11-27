@@ -195,7 +195,6 @@ if ( $fromForm = $form->get_data() ) {
     }
 
     // *** how does this handle the no change stuff?
-print "<h1>report details is </h1> <xmp>"; var_dump( $repo_details ) ; print "</xmp>";
     //$form = new connection_form( null, $repo_details );
     $form->set_data( $repo_details );
     $form->display();

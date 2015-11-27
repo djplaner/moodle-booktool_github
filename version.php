@@ -25,5 +25,5 @@
 defined('MOODLE_INTERNAL') || die;
 
 $plugin->component = 'booktool_github'; // Full name of the plugin (used for diagnostics)
-$plugin->version   = 2015112503; // The current plugin version (Date: YYYYMMDDXX)
+$plugin->version   = 2015112700; // The current plugin version (Date: YYYYMMDDXX)
 $plugin->requires  = 2014110400; // Requires this Moodle version
