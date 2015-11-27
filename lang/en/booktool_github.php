@@ -48,6 +48,18 @@ $string['form_no_create_file'] = '<h3>Unable to find or create path</h3> <p>It a
 $string['form_no_database_write'] = '<h3>Unable to update database</h3><p>Unable to save changes to connection details.</p> <p>Please contact your local support to correct this problem.</p> ';
 
 /******************************************************************
+ * string for push and pull pages
+ */
+
+$string['push_button'] = 'Push';
+$string['push_warning'] = '<h2>Push warning</h2> <p>If you continue with this process the current contents of (*** make uRL ) this Moodle book) will be copied onto GitHub as the next version of (*** this file make URL). The implications of this action include:</p> <ol> <li> All content of the Moodle book will be available to anyone who can access the GitHub repository.</li> </ol>';
+
+$string['pull_button'] = 'Pull';
+$string['pull_warning'] = '<h2>Pull warning</h2> <p>If you continue with this process the current contents of (*** make uRL ) this Moodle book) will be replaced with the contents of  (*** this file make URL). </p><p>Are you sure you wish to do this?</p> <p>If required, will you be able to recover the contents that are replaced? (If you have previously pushed the contents to GitHub, you can) </p>';
+$string['pull_warning_unsaved_changes'] = '<h3>Warning</h3> <p>It appears that the latest changes to the Moodle book have not previously been <a href="{$a}">pushed</a> to GitHub. Suggesting some content will be lost.</p>'; 
+
+
+/******************************************************************
  * strings for show functions
  */
 
