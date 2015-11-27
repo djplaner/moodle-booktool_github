@@ -45,6 +45,7 @@ $course = $DB->get_record('course', array('id'=>$cm->course), '*', MUST_EXIST);
 $book = $DB->get_record('book', array('id'=>$cm->instance), '*', MUST_EXIST); 
 
 $PAGE->set_url('/mod/book/tool/github/index.php');
+$PAGE->navbar->add( 'GitHub tool', new moodle_url( '/mod/book/tool/github/index.php', array( 'id' => $id) ));
 
 require_login($course, false, $cm);
 
