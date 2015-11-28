@@ -53,6 +53,8 @@ $string['form_no_database_write'] = '<h3>Unable to update database</h3><p>Unable
 
 $string['push_button'] = 'Push';
 $string['push_warning'] = '<h2>Push warning</h2> <p>If you continue with this process the current contents of (*** make uRL ) this Moodle book) will be copied onto GitHub as the next version of (*** this file make URL). The implications of this action include:</p> <ol> <li> All content of the Moodle book will be available to anyone who can access the GitHub repository.</li> </ol>';
+$string['push_form_message'] = 'Description of push: ';
+$string['push_form_default_message'] = 'Replace with your description';
 
 $string['pull_button'] = 'Pull';
 $string['pull_warning'] = '<h2>Pull warning</h2> <p>If you continue with this process the current contents of (*** make uRL ) this Moodle book) will be replaced with the contents of  (*** this file make URL). </p><p>Are you sure you wish to do this?</p> <p>If required, will you be able to recover the contents that are replaced? (If you have previously pushed the contents to GitHub, you can) </p>';
