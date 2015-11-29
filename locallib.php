@@ -186,12 +186,14 @@ function booktool_github_put_repo_details( $repo_details ) {
     $record->bookid       = $repo_details['bookid'];
     $record->repository   = $repo_details['repo'];
     $record->path         = $repo_details['path'];
+    $record->pushedrevision = $repo_details['pushedrevision'];
+    $record->pushedtime = $repo_details['pushedtime'];
 
     if ( array_key_exists( 'connection_id', $repo_details ) && 
          $repo_details['connection_id'] > 0) {
         // update an existing entry if no id or id is 0
         // i.e. the form was empty
-        $record->id = $repo_details['id'];
+        $record->id = $repo_details['connection_id'];
 
         $DB->update_record( 'booktool_github_connections', $record );
         return true;
@@ -315,7 +317,7 @@ function booktool_github_view_repo_details( $repo_details, $github_user){
  * book and its connection to github
  */
 
-function booktool_github_view_status( $cmid, $github_client, $repo_details ) {
+function booktool_github_view_status( $cmid, $github_client, $repo_details, $urls ) {
 
     // if there are repo details show the commit information
     if ( array_key_exists( 'repo', $repo_details ) ) {
@@ -327,15 +329,19 @@ function booktool_github_view_status( $cmid, $github_client, $repo_details ) {
         $book_revision = booktool_github_get_book_revision( $repo_details );
         $lastgit_time = booktool_github_get_last_gittime( $commits );
 
+/*print "<h3>repo</h3><xmp>"; var_dump($repo_details); print "</xmp>";
+print "<h3> Status situation </h3> ";
+print "<ul> <li> pushed_revision $pushed_revision versus book_revision $book_revision </li> <li> pushed_time $pushed_time versus git_time $lastgit_time</li> </ul>"; */
+
         // *** space to add push/pull etc
-        booktool_github_show_push_pull( $cmid, $pushed_revision, $pushed_time, $book_revision, $lastgit_time ) ;
+        booktool_github_show_push_pull( $cmid, $pushed_revision, $pushed_time, $book_revision, $lastgit_time, $urls ) ;
             
         if ( ! $commits ) {
             // ***** fix this up
-            print "<h3>Error - no get commits </h3>" ;
+            print get_string('form_no_commits','booktool_github',$urls);
         } else {
-            echo '<h3>History</h3>';
-            print '<p>The <a href="">*** make link *** GitHub file</a> has undergone the following changes.</p>';
+            print get_string('form_history','booktool_github',$urls);
+
             $string = booktool_github_view_commits( $commits );
             echo $string;
         }
@@ -462,35 +468,38 @@ function booktool_github_view_commits( $commits ) {
  */
 
 function booktool_github_show_push_pull( $cmid, $pushed_revision, $pushed_time, 
-                                         $book_revision, $lastgit_time ) {
+                                         $book_revision, $lastgit_time, $urls ) {
 
-    print "<h3>Current status</h3>";
-
+    $status = '';
     $push = false;
     $pull = false;
 
-    if ( ( $pushed_revision < $book_revision ) ||
-         ( $pushed_time > $lastgit_time ) ) {
-        // if pushedrevision behind Book revision PUSH
-        // or pushedtime ahead of last commit time
-        print '<p style="center"><strong>PUSH</strong></p>';
-        // just need to now the name of the script to push
+    if ( $pushed_revision < $book_revision )  {
+        $status .= get_string('book_revision','booktool_github');
         $push = true;
-
-        $url = new moodle_url('/mod/book/tool/github/push.php', array('id' => $cmid));
-        print '<p> <a href="' . $url->out() . '">PUSH</a></p>';
+    }
+    if ( $pushed_time > $lastgit_time ) {
+        $status .= get_string('missing_push', 'booktool_github');
+        $push = true;
     }
     if ( $pushed_time < $lastgit_time ) {
-        // if pushedtime behind latest git update PULL
-        print '<p style="center"><strong>PULL</strong></p>';
+        $status .= get_string('behind_git', 'booktool_github');
+
         $pull = true;
-        $url = new moodle_url('/mod/book/tool/github/pull.php', array('id' => $cmid));
-        print '<p> <a href="' . $url->out() . '">PULL</a></p>';
     }
 
     if ( ! $push && ! $pull ) {
-        print "<p>Book and git file are consistent.</p>";
+        $status .= get_string('consistent', 'booktool_github');
     }
+
+    $urls['status'] = $status;
+    print get_string('form_status','booktool_github', $urls);
+
+    $push_url = new moodle_url('/mod/book/tool/github/push.php', array('id' => $cmid));
+    $pull_url = new moodle_url('/mod/book/tool/github/pull.php', array('id' => $cmid));
+
+    $arr = Array( 'push_url'=>$push_url->out(), 'pull_url'=>$pull_url->out());
+    print get_string('form_operations', 'booktool_github', $arr);
 
 }
 
@@ -576,7 +585,12 @@ function booktool_github_push_book( $github_client, $repo_details, $message ) {
     $data = array();
     $data['message'] = $message;
     $data['content'] = base64_encode( $book_content );
-    $data['sha'] = booktool_github_get_sha( $github_client, $repo_details );  
+    $git_details = booktool_github_git_details( $github_client, $repo_details );
+    if ( $git_details === 0 ) {
+        print "<h3> Failure</h3>";
+        return false;
+    }
+    $data['sha'] = $git_details->getSha();
 
     $data['committer'] = array( 'name' => 'David Jones',
                                 'email' => 'davidthomjones@gmail.com' );
@@ -593,22 +607,42 @@ function booktool_github_push_book( $github_client, $repo_details, $message ) {
         return false;
     }
 
-    return true;
+    // need to update the book table
+    // - modify pushedrevision to current book revision
+    // - set pushedtime to latest git time
+    $commits = booktool_github_get_commits( $github_client, $repo_details) ;
+    $lastgit_time = booktool_github_get_last_gittime( $commits );
+print "<h3>FROM repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
+
+    $repo_details['pushedtime'] = $lastgit_time;
+    $repo_details['pushedrevision'] = $book->revision;
+
+print "<h3>TO repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
+
+    return booktool_github_put_repo_details( $repo_details );
 }
 
-function booktool_github_get_sha( $github_client, $repo_details ) {
+/*
+ * return a modified GitHubReadmeContent object with details about the
+ * latest version of the file
+ * - add "date" to hold the time the file was last committed 
+ */
+
+function booktool_github_git_details( $github_client, $repo_details ) {
     $request = "/repos/" . $repo_details['owner'] . "/" . $repo_details['repo'] .
                "/contents/" . rawurlencode( $repo_details['path'] );
 
+    // get the basic detail about the file
     $data = array();
     $response = array();
     try{
         $response = $github_client->request( $request, 'GET', $data, 200, 'GitHubReadmeContent'   );
     } catch ( Exception $e ) {
+print "<h3>First failure</h3>";
         return 0;
     }
 
-    return $response->getSha();
+    return $response;
 }
 
 
@@ -730,7 +764,7 @@ function booktool_github_update_book_table( $repo_details, $git_book ) {
 
     $book = $book[$repo_details['bookid']];
 
-print "<h3>Changing this</h3><xmp>"; var_dump($book); print "</xmp>";
+//print "<h3>Changing this</h3><xmp>"; var_dump($book); print "</xmp>";
 //print "<h3>gitbook</h3><xmp>"; var_dump($git_book); print "</xmp>";
     // update the right bits from git
     foreach ( $update_fields as $change ) {
@@ -741,7 +775,7 @@ print "<h3>Changing this</h3><xmp>"; var_dump($book); print "</xmp>";
     $book->revision++;// = 10 + $book->revision ;
     $book->timemodified = time();
 
-print "<h3>TO</h3><xmp>"; var_dump($book); print "</xmp>";
+//print "<h3>TO</h3><xmp>"; var_dump($book); print "</xmp>";
     return $DB->update_record( "book", $book );
 }
 

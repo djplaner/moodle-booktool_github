@@ -42,6 +42,8 @@ $book = $DB->get_record('book', array('id'=>$cm->instance), '*', MUST_EXIST);
 $PAGE->set_url('/mod/book/tool/github/index.php');
 $PAGE->navbar->add( 'GitHub tool', new moodle_url( '/mod/book/tool/github/index.php', array( 'id' => $cmid) ));
 
+$book_url = new moodle_url( '/mod/book/view.php', array('id'=>$cmid));
+
 require_login($course, false, $cm);
 
 $context = context_module::instance($cm->id);
@@ -123,11 +125,6 @@ if ( $fromForm = $form->get_data() ) {
 
             $change = true;
 
-            print "<h1>Going to change the database</h1>";
-            print "<xmp> " ;
-            var_dump( $fromForm );
-            print "</xmp>";
-
             $repo_details['repo'] = trim( $fromForm->repo );
             $repo_details['path'] = trim( $fromForm->path );
             $repo_details['bookid'] = $book->id;
@@ -182,13 +179,22 @@ if ( $fromForm = $form->get_data() ) {
 //*****************************************************************
 // now show the rest of the form
 
+$git_url = 'http://github.com/' . $repo_details['owner'] . '/' .
+            $repo_details['repo'].'/blob/master/'.$repo_details['path'];
+$repo_url = 'http://github.com/' . $repo_details['owner'] . '/' .
+            $repo_details['repo'] . '//' ;
+$git_user_url = 'http://github.com/' . $repo_details['owner'];
+$urls = Array( 'book_url' => $book_url->out(), 'git_url' => $git_url, 
+               'repo_url' => $repo_url,'git_user_url' => $git_user_url );
+
 if ( ! array_key_exists( 'repo', $repo_details ) ) {
         print get_string( 'form_empty', 'booktool_github' );
     } else if ( $validConnection ) {
-        print get_string( 'form_complete', 'booktool_github',
-                          'http://github.com/' . $repo_details['owner'] . 
+
+        print get_string( 'form_complete', 'booktool_github', $urls );
+/*                          'http://github.com/' . $repo_details['owner'] . 
                           '/' . $repo_details['repo'] . '/blob/master/' .
-                          $repo_details['path'] );
+                          $repo_details['path'] ); */
     } else {
         print get_string( 'form_connection_broken', 'booktool_github' );
     }
@@ -199,7 +205,7 @@ if ( ! array_key_exists( 'repo', $repo_details ) ) {
     $form->display();
 
     if ( $validConnection ) {
-        booktool_github_view_status( $cmid, $github_client, $repo_details );
+        booktool_github_view_status( $cmid, $github_client, $repo_details, $urls );
     }
 
 echo $OUTPUT->footer();

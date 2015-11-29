@@ -33,9 +33,20 @@ $string['commit_details'] = 'commit details';
 
 
 # connection form
-$string['form_empty'] = '<h2>Provide GitHub details</h2> <p>To work this tool requires two bits of information to work. These are:</p><ol> <li> GitHub <a href="https://help.github.com/articles/github-glossary/#repository">repository</a> <p>e.g. the name of <a href="https://github.com/djplaner/bim2">this repository</a> is <em>bim2</em></li> <li> Path to file in repository. <p>e.g. the path <a href="https://github.com/djplaner/bim2/blob/master/db/log.php">for this file</a> from the <em>bim2</em> repository is <em>db/log.php</em>.  </li> </ol>';
-$string['form_complete'] = '<h2>Current GitHub details</h2> <p>This book is currently connected to <a href="{$a}">this file</a> on GitHub. Use the form below to change these details.</p>';
+$string['form_empty'] = '<h2>Provide GitHub connection details</h2> <p>To work this tool requires two bits of information to work. These are:</p><ol> <li> GitHub <a href="https://help.github.com/articles/github-glossary/#repository">repository</a> <p>e.g. the name of <a href="https://github.com/djplaner/bim2">this repository</a> is <em>bim2</em></li> <li> Path to file in repository. <p>e.g. the path <a href="https://github.com/djplaner/bim2/blob/master/db/log.php">for this file</a> from the <em>bim2</em> repository is <em>db/log.php</em>.  </li> </ol>';
+$string['form_complete'] = '<h2>Current GitHub connection details</h2> <p><a href="{$a->book_url}">This book</a> is currently connected to <a href="{$a->git_url}">this file</a> in <a href="{$a->repo_url}">this GitHub repository</a>.</p><p> Use the form below to change the details of this connection.</p>';
 $string['form_connection_broken'] = '<h2>No valid GitHub connection</h2> <p>The information provided in the form below is unable to form a working connection to GitHub.</p>';
+
+$string['form_no_commits'] = '<p>There have been no data added to <a href="{$a->git_url}">this file</a> from <a href="{$a->repo_url}">this repository</a>.';
+$string['form_history'] = '<h3>Change history</h3> <p>The following provides a summary of the changes that <a href="{$a->git_url}">this file</a> from <a href="{$a->repo_url}">this repository</a> has undergone.</p>';
+
+$string['form_status'] = '<h3>Status</h3> <p>Currently, the relationship between <a href="{$a->book_url}">this book</a> and <a href="{$a->git_url}">the GitHub file</a> is:</p><ul>{$a->status}</ul>';
+$string['book_revision'] = '<li> <span style="background-color: #ffff99">The book has been revised since the last push.</span> </li>';
+$string['missing_push'] = '<li> <span style="background-color: #ffff99">The GitHub file does not appear to have the latest push from the book.</span> </li>';
+$string['behind_git'] = '<li> <span style="background-color: #ffff99">The GitHub file is ahead of the book.</span> </li>';
+$string['consistent'] = '<li> <span style="background-color: #66ff66">The Book and the GitHub file are consistent.</span> </li>';
+$string['form_operations'] = '<h3>GitHub operations</h3> <p>You can:</p><ol> <li> <strong><a href="{$a->push_url}">Push</a></strong> - the content of the book to the GitHub file. </li> <li> <strong><a href="{$a->pull_url}">Pull</a></strong> - the content of the GitHub file back into the book. </li> </ol>';
+
 
 $string['repo_form_element'] = 'GitHub repository:';
 $string['repo_form_default'] = 'Enter name of github repository';

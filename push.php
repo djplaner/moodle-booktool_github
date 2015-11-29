@@ -111,9 +111,6 @@ if ( $fromForm = $form->get_data() ) {
     } else {
         print get_string('push_failure','booktool_github',$urls);
     }
-
-    // if it all worked, show progress and redirect back to index.php
-    print "<h1> Have done the push </h1>";
 } else {
     // just display the initial warning
     print get_string( 'push_warning', 'booktool_github', $urls );
