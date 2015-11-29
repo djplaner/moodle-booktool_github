@@ -145,7 +145,7 @@ function booktool_github_create_new_file( $github_client, $repo_details, $conten
 
 
 /** 
-  * ( repo, path ) = get_repo_details( $book_id, $github_user );
+  * ( repo, path ) = get_repo_details( $book_id );
   * - return an array of basic information about the connection
   *   that is required by the github_client
   *   - repo is the name of the github repo
@@ -206,7 +206,7 @@ function booktool_github_put_repo_details( $repo_details ) {
  * - return an array of GitHubCommit objects
  */
 
-function booktool_github_get_commits( $id, $github_client, $repo_details) {
+function booktool_github_get_commits( $github_client, $repo_details) {
 
    try{
        $commits = $github_client->repos->commits->listCommitsOnRepository(
@@ -314,11 +314,11 @@ function booktool_github_view_repo_details( $repo_details, $github_user){
  * book and its connection to github
  */
 
-function booktool_github_view_status( $id, $github_client, $repo_details ) {
+function booktool_github_view_status( $cmid, $github_client, $repo_details ) {
 
     // if there are repo details show the commit information
     if ( array_key_exists( 'repo', $repo_details ) ) {
-        $commits = booktool_github_get_commits( $id, $github_client, $repo_details);
+        $commits = booktool_github_get_commits( $github_client, $repo_details);
         // ?? need to set default value
         $pushed_revision = $repo_details['pushedrevision'];
         $pushed_time = $repo_details['pushedtime'];
@@ -327,7 +327,7 @@ function booktool_github_view_status( $id, $github_client, $repo_details ) {
         $lastgit_time = booktool_github_get_last_gittime( $commits );
 
         // *** space to add push/pull etc
-        booktool_github_show_push_pull( $repo_details['id'], $pushed_revision, $pushed_time, $book_revision, $lastgit_time ) ;
+        booktool_github_show_push_pull( $cmid, $pushed_revision, $pushed_time, $book_revision, $lastgit_time ) ;
             
         if ( ! $commits ) {
             // ***** fix this up
@@ -344,6 +344,7 @@ function booktool_github_view_status( $id, $github_client, $repo_details ) {
 
 /***************************************************
  * booktool_github_get_book_revision( $repo_details)
+ * - return the revision number for the Moodle book
  */
 
 function booktool_github_get_book_revision( $repo_details) {
@@ -459,7 +460,7 @@ function booktool_github_view_commits( $commits ) {
  *   - if repo_details->timepushed is behind most recent commit
  */
 
-function booktool_github_show_push_pull( $id, $pushed_revision, $pushed_time, 
+function booktool_github_show_push_pull( $cmid, $pushed_revision, $pushed_time, 
                                          $book_revision, $lastgit_time ) {
 
     print "<h3>Current status</h3>";
@@ -475,14 +476,14 @@ function booktool_github_show_push_pull( $id, $pushed_revision, $pushed_time,
         // just need to now the name of the script to push
         $push = true;
 
-        $url = new moodle_url('/mod/book/tool/github/push.php', array('id' => $id));
+        $url = new moodle_url('/mod/book/tool/github/push.php', array('id' => $cmid));
         print '<p> <a href="' . $url->out() . '">PUSH</a></p>';
     }
     if ( $pushed_time < $lastgit_time ) {
         // if pushedtime behind latest git update PULL
         print '<p style="center"><strong>PULL</strong></p>';
         $pull = true;
-        $url = new moodle_url('/mod/book/tool/github/pull.php', array('id' => $id));
+        $url = new moodle_url('/mod/book/tool/github/pull.php', array('id' => $cmid));
         print '<p> <a href="' . $url->out() . '">PULL</a></p>';
     }
 
@@ -534,6 +535,301 @@ function booktool_github_get_client_details() {
                       'clientsecret' => $result->clientsecret );
     }
 }
+
+/*
+ * $content = booktool_github_get_file_content( $github_client, $repo_details )
+ * - return the contents of the github file
+ */
+
+function booktool_github_get_file_content( $github_client, $repo_details ) {
+    $request = "/repos/" . $repo_details['owner'] . "/" . $repo_details['repo'] .
+               "/contents/" . rawurlencode( $repo_details['path'] );
+
+    $data = array();
+    $response = array();
+    try{
+        $response = $github_client->request( $request, 'GET', $data, 200, 'GitHubReadmeContent'   );
+    } catch ( Exception $e ) {
+        return 0;
+    }
+
+    return base64_decode( $response->getContent() );
+}
+
+/*****************************************************************
+ * PUSH | PULL functions
+ */
+
+function booktool_github_push_book( $github_client, $repo_details, $message ) {
+    global $DB;
+
+    // get the book data
+    $book = $DB->get_record( 'book', Array( 'id'=> $repo_details['bookid']) );
+    $select = "bookid=" . $repo_details['bookid'] ." order by pagenum";
+    $result = $DB->get_records_select( 'book_chapters', $select);
+
+    // generate the content
+    $book_content = booktool_github_prepare_book_html( $book, $result );
+
+    // do the push??
+    $data = array();
+    $data['message'] = $message;
+    $data['content'] = base64_encode( $book_content );
+    $data['sha'] = booktool_github_get_sha( $github_client, $repo_details );  
+
+    $data['committer'] = array( 'name' => 'David Jones',
+                                'email' => 'davidthomjones@gmail.com' );
+
+    $request = "/repos/" . $repo_details['owner'] . "/" . $repo_details['repo'] .
+               "/contents/" . rawurlencode( $repo_details['path'] );
+
+    $data['content'] = base64_encode( $book_content );
+
+    try{
+        $response = $github_client->request($request, 'PUT', $data, 200, 
+                                            'GitHubReadmeContent');
+    } catch ( Exception $e ) {
+        return false;
+    }
+
+    return true;
+}
+
+function booktool_github_get_sha( $github_client, $repo_details ) {
+    $request = "/repos/" . $repo_details['owner'] . "/" . $repo_details['repo'] .
+               "/contents/" . rawurlencode( $repo_details['path'] );
+
+    $data = array();
+    $response = array();
+    try{
+        $response = $github_client->request( $request, 'GET', $data, 200, 'GitHubReadmeContent'   );
+    } catch ( Exception $e ) {
+        return 0;
+    }
+
+    return $response->getSha();
+}
+
+
+//*** transform the contents of the book into some sort of single HTML string
+// * Important information for each chapter is
+//   - pagenum, subchapter, title, content, contentformat, hidden
+// * Improtant information for the book
+//   - name, intro, introformat, customtitles?
+function booktool_github_prepare_book_html( $book, $result ) {
+    global $DB;
+
+    $content = '<html><head><title>' . $book->name. '</title></head><body>';
+
+    $content .= '<div class="mg-book" data-name="' . $book->name . 
+                '" data-introformat="' . $book->introformat .
+                '" data-customtitles="' . $book->customtitles . 
+                '" data-numbering="' . $book->numbering .
+                '" data-navstyle="' . $book->navstyle .
+                '" data-customtitles="' . $book->customtitles .
+                '"> <div class="mg-book_intro">' . $book->intro . '</div>';
+    foreach ( $result as $chapter ) {
+        $content .= '<div class="mg-book_chapter" ' .
+                   ' data-subchapter="' .  $chapter->subchapter .  '"' . 
+                   ' data-pagenum="' . $chapter->pagenum . '"' .
+                   ' data-contentformat="' . $chapter->contentformat . '"' .
+                   ' data-title="' . $chapter->title . '"' .
+                   ' data-hidden="' . $chapter->hidden . '">';
+        $content .= '<h1 class="mg-chapterTitle">' . $chapter->title . '</h1>';
+
+        $content .= $chapter->content;
+        
+        $content .= '</div>';
+    }
+
+    $content .= "</div>";
+    $content .= "</body></html>";
+
+    return $content ;
+}
+
+/******************************************************************
+ * book_tool_github_pull_book
+ */
+
+function booktool_github_pull_book( $github_client, $repo_details ) {
+    global $DB;
+
+    // retrieve the content of the github file
+    $content = booktool_github_get_file_content($github_client, $repo_details);
+    if ( $content === 0 ) {
+        return false;
+    }
+
+//    print "<h3>GOt some content</h3> <xmp>"; var_dump( $content );print"</xmp>";
+
+    // parse it
+    $git_book = booktool_github_parse_file_content( $content );
+
+    if ( $git_book === false ) {
+        return false;
+    }
+
+//    print "<h3> Parsed it</h3><xmp>"; var_dump( $git_book);print"</xmp>";
+        // error if it's no in the book format, or any other problem
+
+    // delete current book chapters
+print "<h3> repo </h3><xmp>"; var_dump( $repo_details ); print "</xmp>";
+
+
+    // update the book table entry
+    booktool_github_update_book_table( $repo_details, $git_book );
+   
+    // remove old book chapters and add the new ones
+    $DB->delete_records('book_chapters',array('bookid'=>$repo_details['bookid']));
+    booktool_github_insert_chapters_table( $repo_details, $git_book );
+
+    return true;
+}
+
+/*
+ * Insert chapters from git_book into the chapters table
+ */
+
+function booktool_github_insert_chapters_table( $repo_details, $git_book ) {
+    global $DB;
+print "<h3>git book is </h3><xmp>"; var_dump($git_book); print "</xmp>";
+
+    $chapters = Array();
+    foreach ( $git_book->chapters as $git_chapter ) {
+        $chapter = (object)$git_chapter;
+        $chapter->bookid = $repo_details['bookid'];
+        $chapter->timecreated = time();
+        $chapter->timemodified = 0;
+        $chapter->importsrc = '';
+        array_push( $chapters, $chapter );
+    }
+
+print "<h3>chapters now are</h3><xmp>";var_dump($chapters);print"</xmp>";
+    $DB->insert_records( 'book_chapters', $chapters, true ); 
+ 
+}
+
+/*
+ * update the book table with data from git
+ * - intro, name, introformat, customtitles, numbering, navstyle 
+ *   changed to git value
+ * - timemodified - gets updated to now
+ * - revision - gets incremented
+ */
+
+function booktool_github_update_book_table( $repo_details, $git_book ) {
+    global $DB;
+
+    $update_fields = Array( 'intro', 'name', 'introformat', 'customtitles',
+                            'numbering', 'navstyle' );
+
+    // get the existing data for the book
+    $book = $DB->get_records( "book", Array( 'id' => $repo_details['bookid'] ));
+
+    if ( sizeof( $book ) == 0 ) {
+        return false;
+    }
+
+    $book = $book[$repo_details['bookid']];
+
+print "<h3>Changing this</h3><xmp>"; var_dump($book); print "</xmp>";
+//print "<h3>gitbook</h3><xmp>"; var_dump($git_book); print "</xmp>";
+    // update the right bits from git
+    foreach ( $update_fields as $change ) {
+        $book->$change = $git_book->book->$change;
+    }
+    
+    // update locally
+    $book->revision++;// = 10 + $book->revision ;
+    $book->timemodified = time();
+
+print "<h3>TO</h3><xmp>"; var_dump($book); print "</xmp>";
+    return $DB->update_record( "book", $book );
+}
+
+
+/*
+ * parse the HTML file 
+ */
+function booktool_github_parse_file_content( $content ) {
+
+    // book_details
+    // - BOOK -> name introformat customtitles
+    // - CHAPTERS -> one for each chapter
+    $book_details = new StdClass;
+    $book_details->book = new StdClass;
+    $book_details->chapters = Array();
+
+    $dom = new DOMDocument;
+    $dom->loadHTML( $content );
+
+    $xpath = new DOMXPath($dom);
+
+    //******* GET BOOK DATA
+    // - attributes other than intro
+    $book_info = $xpath->query( "//div[@class='mg-book']");
+    if ( $book_info === false ) {
+        return false;
+    }
+
+    foreach ( $book_info as $book ) {
+        $attrNames = Array( 'name', 'introformat',
+                            'customtitles', 'numbering', 'navstyle' );
+        foreach ( $attrNames as $name ) {
+            $attribute = $book->attributes->getNamedItem( 'data-' .$name );
+            $book_details->book->$name = $attribute->nodeValue;
+        }
+    }
+
+    // - book_intro
+    $book_intro = $xpath->query( "//div[@class='mg-book_intro']");
+    if ( $book_intro === false ) {
+        return false;
+    }
+
+    foreach ( $book_intro as $intro ) {
+        $book_details->book->intro = booktool_github_DOMinnerHTML( $intro );
+    }
+
+//print "<xmp>"; var_dump( $book_details ); print "</xmp>";
+
+    //********* get the chapter data
+    $chapters = $xpath->query( "//div[@class='mg-book_chapter']");
+    if ( $chapters === false ) {
+        return false;
+    }
+
+    foreach ( $chapters as $chapter ) {
+        $new_chapter = Array();
+       $attrNames = Array( 'subchapter', 'pagenum', 'hidden',
+                            'contentformat', 'title');
+        foreach ( $attrNames as $name ) {
+            $attribute = $chapter->attributes->getNamedItem('data-'. $name );
+            $new_chapter[$name] = $attribute->nodeValue;
+        }
+        $new_chapter['content'] = booktool_github_DOMinnerHTML( $chapter );
+        array_push( $book_details->chapters, $new_chapter );
+    }
+
+//print "<xmp>"; var_dump( $book_details ); print "</xmp>";
+
+    return $book_details;
+}
+
+function booktool_github_DOMinnerHTML(DOMNode $element)
+{
+    $innerHTML = "";
+    $children  = $element->childNodes;
+
+    foreach ($children as $child)
+    {
+        $innerHTML .= $element->ownerDocument->saveHTML($child);
+    }
+
+    return $innerHTML;
+}
+
 
 
 /*****************************************************************
@@ -587,5 +883,8 @@ function booktool_github_url_decode_params($state) {
     $json = base64_decode(strtr($state, '-_,', '+/='));
     return json_decode( $json );
 }
+
+
+
 
 

@@ -30,22 +30,17 @@ require_once($CFG->dirroot.'/mod/book/locallib.php');
 require_once( __DIR__ . '/connection_form.php' );
 
 // *** can this be put into a support function?
-$id = required_param('id', PARAM_INT);           // Course Module ID
+$cmid = required_param('id', PARAM_INT);           // Course Module ID
+
 $instructions = optional_param( 'instructions', 0, PARAM_INT);
 
-// kludge to fix form submission where bookid and id (connection id) get mixed
-$tmp_bookid = optional_param( 'bookid', -1, PARAM_INT );
 
-if ($tmp_bookid > -1 ) {
-    $id = $tmp_bookid;
-}
-
-$cm = get_coursemodule_from_id('book', $id, 0, false, MUST_EXIST);
+$cm = get_coursemodule_from_id('book', $cmid, 0, false, MUST_EXIST);
 $course = $DB->get_record('course', array('id'=>$cm->course), '*', MUST_EXIST);
 $book = $DB->get_record('book', array('id'=>$cm->instance), '*', MUST_EXIST); 
 
 $PAGE->set_url('/mod/book/tool/github/index.php');
-$PAGE->navbar->add( 'GitHub tool', new moodle_url( '/mod/book/tool/github/index.php', array( 'id' => $id) ));
+$PAGE->navbar->add( 'GitHub tool', new moodle_url( '/mod/book/tool/github/index.php', array( 'id' => $cmid) ));
 
 require_login($course, false, $cm);
 
@@ -63,7 +58,7 @@ require_capability( 'booktool/github:export', $context );
 //*****
 // - has this book been configured to use github?
 
-$repo_details = booktool_github_get_repo_details( $id );
+$repo_details = booktool_github_get_repo_details( $book->id );
 
 // test the session variable "seen_git_instructions"
 //unset( $_SESSION['github_seen_instructions'] );
@@ -74,10 +69,12 @@ if ( $instructions > 0 ) {
 
 echo $OUTPUT->header();
 
+
+print "<h3>Book details</h3><xmp>"; var_dump($book); print "</xmp>";
 // if the instructions haven't been seen, display some basic info
 $seen_instructions = array_key_exists( "github_seen_instructions", $_SESSION );
 if ( ! $repo_details && ! $seen_instructions ) {
-    booktool_github_show_instructions( $id );
+    booktool_github_show_instructions( $cmid );
     echo $OUTPUT->footer();
     die;
 }
@@ -85,7 +82,7 @@ if ( ! $repo_details && ! $seen_instructions ) {
 // Ready to use github connection
 
 // get github client and github user details via oauth
-list( $github_client, $github_user ) = booktool_github_get_client( $id );
+list( $github_client, $github_user ) = booktool_github_get_client( $cmid );
 
 // couldn't authenticate with github, probably never happen
 // **** TIDY UP
@@ -107,7 +104,7 @@ $commits = false;
 //*************************************
 // Start showing the form
 
-$form = new connection_form( null, array( 'bookid' => $id ) );
+$form = new connection_form( null, array( 'id' => $cmid ) );
 
 // assume it's valid
 $validConnection = true;
@@ -134,7 +131,7 @@ if ( $fromForm = $form->get_data() ) {
 
             $repo_details['repo'] = trim( $fromForm->repo );
             $repo_details['path'] = trim( $fromForm->path );
-            $repo_details['bookid'] = trim( $fromForm->bookid );
+            $repo_details['bookid'] = $book->id;
             $repo_details['id'] = trim( $fromForm->id );
 
             if ( ! booktool_github_repo_exists($github_client, $repo_details) ) {
@@ -182,9 +179,10 @@ if ( $fromForm = $form->get_data() ) {
         // **** may just continue on at this stage
 } 
 
+//*****************************************************************
 // now show the rest of the form
 
-    if ( ! array_key_exists( 'repo', $repo_details ) ) {
+if ( ! array_key_exists( 'repo', $repo_details ) ) {
         print get_string( 'form_empty', 'booktool_github' );
     } else if ( $validConnection ) {
         print get_string( 'form_complete', 'booktool_github',
@@ -201,7 +199,7 @@ if ( $fromForm = $form->get_data() ) {
     $form->display();
 
     if ( $validConnection ) {
-        booktool_github_view_status( $id, $github_client, $repo_details );
+        booktool_github_view_status( $cmid, $github_client, $repo_details );
     }
 
 echo $OUTPUT->footer();

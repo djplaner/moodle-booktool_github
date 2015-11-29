@@ -36,6 +36,12 @@ class push_form extends moodleform {
         $mform->addElement( 'hidden', 'id', $this->_customdata['id'] );
         $mform->setType( 'id', PARAM_INT );
 
+        $mform->addElement( 'text', 'message',
+                            get_string('push_form_message','booktool_github'));
+        $mform->setType('message', PARAM_NOTAGS );
+        $mform->setDefault('message', get_string('push_form_default_message',
+                                                 'booktool_github' ));
+
         $button = array();
         $button[] = &$mform->createElement('submit','submitbutton', get_string('push_button', 'booktool_github'));
         $mform->addGroup($button,'buttonar', '', array(' '), false);

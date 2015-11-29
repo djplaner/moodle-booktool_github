@@ -34,10 +34,6 @@ class connection_form extends moodleform {
  
         $mform = $this->_form; 
 
-        // hidden values - need to play silly buggers with books and connections
-        $mform->addElement( 'hidden', 'bookid', $this->_customdata['bookid'] );
-        $mform->setType( 'bookid', PARAM_INT );
-
         $mform->addElement( 'hidden', 'id', $this->_customdata['id'] );
         $mform->setType( 'id', PARAM_INT );
 
