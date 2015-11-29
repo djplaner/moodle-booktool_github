@@ -37,6 +37,11 @@ class connection_form extends moodleform {
         $mform->addElement( 'hidden', 'id', $this->_customdata['id'] );
         $mform->setType( 'id', PARAM_INT );
 
+        $mform->addElement( 'hidden', 'connection_id', 
+                            $this->_customdata['connection_id'] );
+        $mform->setType( 'connection_id', PARAM_INT );
+        $mform->setDefault('connection_id', 0);
+
         // details of the repo
         $mform->addElement('text', 'repo', 
                             get_string('repo_form_element', 'booktool_github')); 

@@ -165,7 +165,7 @@ function booktool_github_get_repo_details( $book_id ) {
         return false;
     }
 
-    return Array( 'id' => $result->id,
+    return Array( 'connection_id' => $result->id,
                   'bookid' => $result->bookid,
                   'repo' => $result->repository,
                   'path' => $result->path,
@@ -187,7 +187,8 @@ function booktool_github_put_repo_details( $repo_details ) {
     $record->repository   = $repo_details['repo'];
     $record->path         = $repo_details['path'];
 
-    if ( array_key_exists( 'id', $repo_details ) && $repo_details['id'] > 0) {
+    if ( array_key_exists( 'connection_id', $repo_details ) && 
+         $repo_details['connection_id'] > 0) {
         // update an existing entry if no id or id is 0
         // i.e. the form was empty
         $record->id = $repo_details['id'];
@@ -197,7 +198,7 @@ function booktool_github_put_repo_details( $repo_details ) {
     } 
     // insert a new entry
 
-    return $DB->insert_record( 'booktool_github_connections', $record );
+    return $DB->insert_record( 'booktool_github_connections', $record ); 
 }
 
 
@@ -674,8 +675,7 @@ function booktool_github_pull_book( $github_client, $repo_details ) {
         // error if it's no in the book format, or any other problem
 
     // delete current book chapters
-print "<h3> repo </h3><xmp>"; var_dump( $repo_details ); print "</xmp>";
-
+//print "<h3> repo </h3><xmp>"; var_dump( $repo_details ); print "</xmp>";
 
     // update the book table entry
     booktool_github_update_book_table( $repo_details, $git_book );
@@ -693,7 +693,6 @@ print "<h3> repo </h3><xmp>"; var_dump( $repo_details ); print "</xmp>";
 
 function booktool_github_insert_chapters_table( $repo_details, $git_book ) {
     global $DB;
-print "<h3>git book is </h3><xmp>"; var_dump($git_book); print "</xmp>";
 
     $chapters = Array();
     foreach ( $git_book->chapters as $git_chapter ) {
@@ -705,9 +704,7 @@ print "<h3>git book is </h3><xmp>"; var_dump($git_book); print "</xmp>";
         array_push( $chapters, $chapter );
     }
 
-print "<h3>chapters now are</h3><xmp>";var_dump($chapters);print"</xmp>";
-    $DB->insert_records( 'book_chapters', $chapters, true ); 
- 
+    return $DB->insert_records( 'book_chapters', $chapters, true ); 
 }
 
 /*

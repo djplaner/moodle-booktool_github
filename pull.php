@@ -98,7 +98,6 @@ $urls = Array( 'book_url' => $book_url->out(), 'tool_url'=>$tool_url->out(),
                 'git_url' => $git_url, 'repo_url' => $repo_url,
                 'git_user_url' => $git_user_url );
 
-print "<h3>repo details</h3> Book id " . $book->id . " <xmp>"; var_dump( $repo_details ); print "</xmp>";
 if ( $fromForm = $form->get_data() ) {
     // user has submitted the form, they want to do the pull
 

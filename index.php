@@ -59,6 +59,7 @@ require_capability( 'booktool/github:export', $context );
 // - has this book been configured to use github?
 
 $repo_details = booktool_github_get_repo_details( $book->id );
+$repo_details['id']=$cmid;
 
 // test the session variable "seen_git_instructions"
 //unset( $_SESSION['github_seen_instructions'] );
@@ -69,8 +70,6 @@ if ( $instructions > 0 ) {
 
 echo $OUTPUT->header();
 
-
-print "<h3>Book details</h3><xmp>"; var_dump($book); print "</xmp>";
 // if the instructions haven't been seen, display some basic info
 $seen_instructions = array_key_exists( "github_seen_instructions", $_SESSION );
 if ( ! $repo_details && ! $seen_instructions ) {
@@ -145,7 +144,6 @@ if ( $fromForm = $form->get_data() ) {
                 // POST /user/repos 
 
             } else if ( ! booktool_github_path_exists($github_client, $repo_details)) {
-  print "<h3> path does not exist </h3>";
                 // file no exists, so create an empty one
                 if ( ! booktool_github_create_new_file( $github_client, $repo_details) ) {
                     print get_string( 'form_no_create_file', 'booktool_github',
@@ -161,6 +159,8 @@ if ( $fromForm = $form->get_data() ) {
                 if ( ! booktool_github_put_repo_details( $repo_details ) ) {
                     print "<h1> updateing databse stuff</h1>";
                     print get_string( 'form_no_database_write', 'booktool_github' );
+                } else { 
+                    print "<h1> ABLE TO UPDATE DATABASE</h1>";
                 } 
             }
 
