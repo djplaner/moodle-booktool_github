@@ -182,6 +182,14 @@ function booktool_github_get_repo_details( $book_id ) {
 function booktool_github_put_repo_details( $repo_details ) {
     global $DB;
 
+    // make sure all the required values available
+    $checks = Array( 'pushedrevision', 'pushedtime' );
+    foreach ( $checks as $check ) {
+        if ( ! array_key_exists( $check, $repo_details )) {
+            $repo_details[$check] = '';
+        }
+    }
+
     $record = new StdClass();
     $record->bookid       = $repo_details['bookid'];
     $record->repository   = $repo_details['repo'];
@@ -612,12 +620,12 @@ function booktool_github_push_book( $github_client, $repo_details, $message ) {
     // - set pushedtime to latest git time
     $commits = booktool_github_get_commits( $github_client, $repo_details) ;
     $lastgit_time = booktool_github_get_last_gittime( $commits );
-print "<h3>FROM repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
+//print "<h3>FROM repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
 
     $repo_details['pushedtime'] = $lastgit_time;
     $repo_details['pushedrevision'] = $book->revision;
 
-print "<h3>TO repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
+//print "<h3>TO repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
 
     return booktool_github_put_repo_details( $repo_details );
 }
@@ -661,7 +669,6 @@ function booktool_github_prepare_book_html( $book, $result ) {
                 '" data-customtitles="' . $book->customtitles . 
                 '" data-numbering="' . $book->numbering .
                 '" data-navstyle="' . $book->navstyle .
-                '" data-customtitles="' . $book->customtitles .
                 '"> <div class="mg-book_intro">' . $book->intro . '</div>';
     foreach ( $result as $chapter ) {
         $content .= '<div class="mg-book_chapter" ' .
@@ -696,8 +703,6 @@ function booktool_github_pull_book( $github_client, $repo_details ) {
         return false;
     }
 
-//    print "<h3>GOt some content</h3> <xmp>"; var_dump( $content );print"</xmp>";
-
     // parse it
     $git_book = booktool_github_parse_file_content( $content );
 
@@ -705,20 +710,27 @@ function booktool_github_pull_book( $github_client, $repo_details ) {
         return false;
     }
 
-//    print "<h3> Parsed it</h3><xmp>"; var_dump( $git_book);print"</xmp>";
-        // error if it's no in the book format, or any other problem
-
-    // delete current book chapters
-//print "<h3> repo </h3><xmp>"; var_dump( $repo_details ); print "</xmp>";
-
     // update the book table entry
     booktool_github_update_book_table( $repo_details, $git_book );
+
    
     // remove old book chapters and add the new ones
     $DB->delete_records('book_chapters',array('bookid'=>$repo_details['bookid']));
     booktool_github_insert_chapters_table( $repo_details, $git_book );
 
-    return true;
+    // update the github_connections table
+    // - pushedtime should equal lastcommit in git
+    // - pushed revision = latest revision from book + 1
+    $commits = booktool_github_get_commits( $github_client, $repo_details) ;
+    $lastgit_time = booktool_github_get_last_gittime( $commits );
+print "<h3>FROM repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
+
+    $repo_details['pushedtime'] = $lastgit_time;
+    $repo_details['pushedrevision'] = 1 + $book->revision;
+
+print "<h3>TO repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
+
+    return booktool_github_put_repo_details( $repo_details );
 }
 
 /*
@@ -824,6 +836,18 @@ function booktool_github_parse_file_content( $content ) {
     }
 
 //print "<xmp>"; var_dump( $book_details ); print "</xmp>";
+
+    //******* remove the headings for chapter titles from chapter content
+    $headings = $xpath->query( "//h1[@class='mg-chapterTitle']");
+    // apparently have to do the dumy array thing for it to work
+    $remove = Array();
+    foreach ( $headings as $heading ) {
+        $remove[] = $heading;
+    }
+
+    foreach ( $remove as $heading ) {
+        $heading->parentNode->removeChild($heading);
+    }
 
     //********* get the chapter data
     $chapters = $xpath->query( "//div[@class='mg-book_chapter']");

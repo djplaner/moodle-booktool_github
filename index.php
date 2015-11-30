@@ -156,8 +156,6 @@ if ( $fromForm = $form->get_data() ) {
                 if ( ! booktool_github_put_repo_details( $repo_details ) ) {
                     print "<h1> updateing databse stuff</h1>";
                     print get_string( 'form_no_database_write', 'booktool_github' );
-                } else { 
-                    print "<h1> ABLE TO UPDATE DATABASE</h1>";
                 } 
             }
 

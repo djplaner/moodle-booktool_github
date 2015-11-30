@@ -44,7 +44,7 @@ $string['form_status'] = '<h3>Status</h3> <p>Currently, the relationship between
 $string['book_revision'] = '<li> <span style="background-color: #ffff99">The book has been revised since the last push.</span> </li>';
 $string['missing_push'] = '<li> <span style="background-color: #ffff99">The GitHub file does not appear to have the latest push from the book.</span> </li>';
 $string['behind_git'] = '<li> <span style="background-color: #ffff99">The GitHub file is ahead of the book.</span> </li>';
-$string['consistent'] = '<li> <span style="background-color: #66ff66">The Book and the GitHub file are consistent.</span> </li>';
+$string['consistent'] = '<li> <span style="background-color: #66ff66">The Book and the GitHub file are the same.</span> </li>';
 $string['form_operations'] = '<h3>GitHub operations</h3> <p>You can:</p><ol> <li> <strong><a href="{$a->push_url}">Push</a></strong> - the content of the book to the GitHub file. </li> <li> <strong><a href="{$a->pull_url}">Pull</a></strong> - the content of the GitHub file back into the book. </li> </ol>';
 
 
