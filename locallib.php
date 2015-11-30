@@ -526,6 +526,7 @@ function booktool_github_get_oauth_token( $id, $URL='/mod/book/tool/github/index
         return $_SESSION{"github_token"};
     } else {
 
+        print get_string( 'github_redirect', 'booktool_github' );
         // redirect to get_oauth.php include passsing CURRENT_URL
         $url = new moodle_url( '/mod/book/tool/github/get_oauth.php',
                                 array( 'id' => $id, 'url' => $URL ));
@@ -723,12 +724,12 @@ function booktool_github_pull_book( $github_client, $repo_details ) {
     // - pushed revision = latest revision from book + 1
     $commits = booktool_github_get_commits( $github_client, $repo_details) ;
     $lastgit_time = booktool_github_get_last_gittime( $commits );
-print "<h3>FROM repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
+//print "<h3>FROM repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
 
     $repo_details['pushedtime'] = $lastgit_time;
     $repo_details['pushedrevision'] = 1 + $book->revision;
 
-print "<h3>TO repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
+//print "<h3>TO repo_details</h3><xmp>";var_dump($repo_details);print "</xmp>";
 
     return booktool_github_put_repo_details( $repo_details );
 }
@@ -864,6 +865,7 @@ function booktool_github_parse_file_content( $content ) {
             $new_chapter[$name] = $attribute->nodeValue;
         }
         $new_chapter['content'] = booktool_github_DOMinnerHTML( $chapter );
+print "<h3>Content $new_chapter[$name]</h3><xmp>";var_dump($new_chapter['content']); print "</xmp>";
         array_push( $book_details->chapters, $new_chapter );
     }
 

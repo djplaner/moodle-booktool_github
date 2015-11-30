@@ -182,8 +182,12 @@ $git_url = 'http://github.com/' . $repo_details['owner'] . '/' .
 $repo_url = 'http://github.com/' . $repo_details['owner'] . '/' .
             $repo_details['repo'] . '//' ;
 $git_user_url = 'http://github.com/' . $repo_details['owner'];
+$rawgit_url = 'https://cdn.rawgit.com/' . $repo_details['owner'] . '/' .
+              $repo_details['repo'] . '/master/' . $repo_details['path'] ;
+
 $urls = Array( 'book_url' => $book_url->out(), 'git_url' => $git_url, 
-               'repo_url' => $repo_url,'git_user_url' => $git_user_url );
+               'repo_url' => $repo_url,'git_user_url' => $git_user_url,
+               'rawgit_url' => $rawgit_url );
 
 if ( ! array_key_exists( 'repo', $repo_details ) ) {
         print get_string( 'form_empty', 'booktool_github' );
