@@ -242,7 +242,7 @@ function booktool_github_change_in_form( $repo_details, $form ) {
     // is there anything in the database?
 //    if ( array_key_exists( 'repo', $repo_details ) &&
 //         array_key_exists( 'path', $repo_details ) ) {
-print "<h1> the repo exists </h1>";
+//print "<h1> the repo exists </h1>";
         // has the form changed from defaults?
         $repoDefault = get_string( 'repo_form_default', 'booktool_github');
         $pathDefault = get_string( 'repo_path_default', 'booktool_github');
@@ -250,11 +250,11 @@ print "<h1> the repo exists </h1>";
         if ( strcmp( $form->repo, $repoDefault ) !== 0 &&
              strcmp( $form->path, $pathDefault ) !== 0 ) {
 
-print "<h1> path is different </h1>";
+//print "<h1> path is different </h1>";
             // has the form data changed from content of the database? 
             if ( strcmp( $form->repo, $repo_details['repo']) !== 0 &&
                  strcmp( $form->path, $repo_details['path']) !== 0 ) {
-print "<h1> form data changed </h1>";
+//print "<h1> form data changed </h1>";
                 return true;
             }
         }
@@ -647,7 +647,7 @@ function booktool_github_git_details( $github_client, $repo_details ) {
     try{
         $response = $github_client->request( $request, 'GET', $data, 200, 'GitHubReadmeContent'   );
     } catch ( Exception $e ) {
-print "<h3>First failure</h3>";
+//print "<h3>First failure</h3>";
         return 0;
     }
 
@@ -663,39 +663,139 @@ print "<h3>First failure</h3>";
 function booktool_github_prepare_book_html( $book, $result ) {
     global $DB;
 
-    $content = '<html><head><title>' . $book->name. '</title></head><body>';
+    $content = "<!DOCTYPE html>\n<html>\n    <head><title>" . $book->name. "</title></head>\n<body>\n";
 
-    $content .= '<div class="mg-book" data-name="' . $book->name . 
+    // the book forms an article
+    // - title - name of book
+    // - data attributes for other database values
+    $content .= "\n" . '<article title="' . $book->name . 
                 '" data-introformat="' . $book->introformat .
                 '" data-customtitles="' . $book->customtitles . 
                 '" data-numbering="' . $book->numbering .
-                '" data-navstyle="' . $book->navstyle .
-                '"> <div class="mg-book_intro">' . $book->intro . '</div>';
-    foreach ( $result as $chapter ) {
-        $content .= '<div class="mg-book_chapter" ' .
-                   ' data-subchapter="' .  $chapter->subchapter .  '"' . 
-                   ' data-pagenum="' . $chapter->pagenum . '"' .
-                   ' data-contentformat="' . $chapter->contentformat . '"' .
-                   ' data-title="' . $chapter->title . '"' .
-                   ' data-hidden="' . $chapter->hidden . '">';
-        $content .= '<h1 class="mg-chapterTitle">' . $chapter->title . '</h1>';
+                '" data-navstyle="' . $book->navstyle .  '">' . "\n" . 
+       // head to contain title and intro
+                '    <head><h1>' . $book->name . "</h1>\n" .
+                '        <div>' . $book->intro . "</div>\n" .
+                "    </head>\n";
 
-        $content .= $chapter->content;
-        
-        $content .= '</div>';
+    // create each chapter as a section within the article
+    // complication: the next chapter may be a sub-chapter, if that's the
+    // case, don't want to close the section tag for the chapter.
+    $prevChapter = 'none';
+    $lastChapter = false;
+    $numItems = count( $result );
+    $i = 0;
+
+    foreach ( $result as $chapter ) {
+//print "<h3> Chapter $i</h3>";
+        // how to set last chapter
+        $lastChapter = ( ++$i === $numItems );
+//print "<p>LastChapter: $lastChapter </p>";
+        // add the appropriate HTML and set the value for last chapter
+        $content = generate_chapter_html( $content, $chapter, 
+                                          $prevChapter, $lastChapter );
+
+        $prevChapter = $chapter->subchapter;
     }
 
-    $content .= "</div>";
-    $content .= "</body></html>";
+    $content .= "</body>\n</html>";
 
     return $content ;
 }
 
 /******************************************************************
+ * generate_chapter_html( $content, $chapter, $prevChapter, $lastChapter )
+ * - add HTML to $content depending on the data in $chapter and
+ *   what the $lastChapter was
+ * - return new value for $lastChapter
+ */
+
+function generate_chapter_html( $content, $chapter, $prevChapter, $lastChapter ) {
+
+    // <section BODY is always needed
+    $body = '    <section title="' . $chapter->title .
+             '" data-subchapter="' .  $chapter->subchapter . 
+             '" data-pagenum="' . $chapter->pagenum . 
+             '" data-contentformat="' . $chapter->contentformat . 
+             '" data-hidden="' . $chapter->hidden . '">' . "\n" .
+             '        <head><h1>' . $chapter->title . '</h1></head>'. "\n" .
+             '        <div>' . $chapter->content . '</div>' . "\n" ;
+
+    // first chapter
+    if ( $prevChapter === 'none' ) {
+//print "<p>FIRST CHAPTER.... sub is " . $chapter->subchapter;
+        if ( $chapter->subchapter == 0 ) {
+            // <section BODY
+            $content .= $body;
+//print "<p>NOT sub chatper</p>\n";
+        } else {
+            // <section EMPTY <section BODY
+            $content .= '    <section></section>' . "\n    " . $body;
+//print "<p>sub chatper</p>\n";
+        }
+    //  in the middle chapters
+    } else if ( ! $lastChapter ) {
+//print "<p>MIDDLE CHAPTER...." . $chapter->subchapter;
+        if ( $prevChapter == 0 ) {
+            if ( $chapter->subchapter == 0 ) {
+                // </section <section BODY
+                $content .= '    </section>' . "\n    " . $body;
+//print "<p>NOT sub chatper</p>\n";
+            } else {
+                // <section BODY
+                $content .= $body;
+//print "<p>sub chatper</p>\n";
+            }
+        } else { 
+            if ( $chapter->subchapter == 0 ) {
+                // </section #subc </section #chap <section BODY 
+                $content .= "        </section>\n    </section>\n    " . $body;
+//print "<p>NOT sub chatper</p>\n";
+            } else {
+                // </section #subc <section BODY
+                $content .= "        </section>\n    " . $body;
+//print "<p>sub chatper</p>\n";
+            }
+        }
+    //  last chapter
+    } else {
+//print "<p>LAST CHAPTER...." . $chapter->subchapter;
+        if ( $prevChapter == 0) {
+            if ( $chapter->subchapter == 0 ) {
+                // </section <section BODY </section
+                $content .= "    </section>\n    " . $body . 
+                            "\n    </section>";
+//print "<p>NOT sub chatper</p>\n";
+            } else {
+                // <section BODY </section #subc </section #chap
+                $content .= $body . "\n        </section>\n    </section>";
+//print "<p>sub chatper</p>\n";
+            }
+        } else { 
+            if ( $chapter->subchapter == 0 ) {
+                // </section #subc </section #chap <section BODY </section
+                $content .= "        </section>\n    </section>\n" . $body . 
+                            "\n    </section>";
+//print "<p>NOT sub chatper</p>\n";
+            } else {
+                // </section #subc <section BODY </section #subc </section #chap
+                $content .= "        </section>\n" . $body . 
+                            "\n        </section>\n    </section>";
+//print "<p>sub chatper</p>\n";
+            }
+        }
+    }
+
+    return $content;
+}
+
+
+
+/******************************************************************
  * book_tool_github_pull_book
  */
 
-function booktool_github_pull_book( $github_client, $repo_details ) {
+function booktool_github_pull_book( $github_client, $repo_details, $book ) {
     global $DB;
 
     // retrieve the content of the github file
@@ -716,7 +816,8 @@ function booktool_github_pull_book( $github_client, $repo_details ) {
 
    
     // remove old book chapters and add the new ones
-    $DB->delete_records('book_chapters',array('bookid'=>$repo_details['bookid']));
+    $result = $DB->delete_records('book_chapters',array('bookid'=>$repo_details['bookid']));
+
     booktool_github_insert_chapters_table( $repo_details, $git_book );
 
     // update the github_connections table
@@ -865,7 +966,7 @@ function booktool_github_parse_file_content( $content ) {
             $new_chapter[$name] = $attribute->nodeValue;
         }
         $new_chapter['content'] = booktool_github_DOMinnerHTML( $chapter );
-print "<h3>Content $new_chapter[$name]</h3><xmp>";var_dump($new_chapter['content']); print "</xmp>";
+//print "<h3>Content $new_chapter[$name]</h3><xmp>";var_dump($new_chapter['content']); print "</xmp>";
         array_push( $book_details->chapters, $new_chapter );
     }
 
