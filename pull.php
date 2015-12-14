@@ -104,7 +104,7 @@ if ( $fromForm = $form->get_data() ) {
     // grab the book content and combine into a single file
 
     // commit the file
-    if ( booktool_github_pull_book( $github_client, $repo_details )) {
+    if ( booktool_github_pull_book( $github_client, $repo_details, $book )) {
         print get_string('pull_success','booktool_github',$urls);
     } else {
         print get_string('pull_failure','booktool_github',$urls);
